@@ -24,7 +24,17 @@ sns.set_style("darkgrid")
 import geopandas as gpd
 
 
-#test change 
+
+
+def check_my_data_dir(my_data_dir):
+    #set my_data directory 
+    
+    if os.path.isdir(my_data_dir): 
+        file_exist=True
+    else: 
+        file_exist=False
+    return file_exist
+    
 
 def check_goodreads_csv(filename='goodreads_library_export.csv'): 
     """Checks for a csv containing Goodreads export csv
@@ -40,7 +50,7 @@ def check_goodreads_csv(filename='goodreads_library_export.csv'):
         file_exist=True
     else: 
         file_exist=False
-        print('ERROR: file "{}" not found in directory "{}" \nExiting analysis.'.format(filename,os.getcwd()))
+        #print('ERROR: file "{}" not found in directory "{}" \nExiting analysis.'.format(filename,os.getcwd()))
     return file_exist 
 
 def get_goodreads_csv(filename='goodreads_library_export.csv',shelf='Read'):
@@ -72,7 +82,7 @@ def check_my_authors(author_file='my_authors.csv'):
         author_file_exist=True
     else: 
         author_file_exist=False
-        print('ERROR: file "{}" not found in directory "{}" \nExiting analysis.'.format(author_file,os.getcwd()))
+       
     return author_file_exist 
 
 def get_myauthors(author_file='my_authors.csv'):
@@ -81,7 +91,7 @@ def get_myauthors(author_file='my_authors.csv'):
     
     return my_authors 
 
-def get_all_authors(file='author_data_all.csv'):
+def get_all_authors(file='\\'.join(os.getcwd().split('\\')[:-1])+'\\books_analysis\\author_data_all.csv'):
     """Imports full author dataset. 
     Args:
     file (str): filename of csv containing author data. Default: 'author_data_all.csv'
@@ -104,7 +114,8 @@ def find_author(authors_ls,all_authors):
     author_details (dataframe): Dataframe containing details for authors in list. 
     """
     author_details=all_authors[all_authors['Author'].isin(authors_ls)]
-    return author_details
+    author_no_details=pd.DataFrame({'Author':[a for a in authors_ls if a not in author_details['Author'].to_list()]})
+    return pd.concat([author_details,author_no_details],ignore_index=True)
     
     
 def get_new_authors(my_books,my_authors):
@@ -121,35 +132,47 @@ def get_new_authors(my_books,my_authors):
         
     new_authors=my_books[~my_books['Author'].isin(my_authors['Author'])]
     return new_authors['Author'].unique()
-
+#%%
 #-----------IMPORT AND UPDATE BOOKS AND AUTHOR DATA------------------
-#1. IMPORT AND CLEAN MY BOOKS DATA 
+#1. CHECK THAT MY_DATA DIRECTORY EXISTS 
+my_data_dir='\\'.join(os.getcwd().split('\\')[:-1])+'\\my_data'
+if check_my_data_dir(my_data_dir):
+    os.chdir(my_data_dir)
+else: 
+    print('ERROR: file structure not correct. Cannot find my_data folder')
+
+
+#%%
+#2 IMPORT AND CLEAN MY BOOKS DATA 
 if check_goodreads_csv():
     my_books=get_goodreads_csv()
     my_books=clean_book_data(my_books)
 else: 
     pass 
 
-
-#2. IMPORT MY AUTHORS DATA 
+#%%
+#3. IMPORT MY AUTHORS DATA 
 all_authors=get_all_authors()
+
+#%% 
 if check_my_authors():
     #If my_authors.csv exists, import data
     my_authors=get_myauthors()
     new_authors_ls=get_new_authors(my_books,my_authors)
 else: 
-    
     #If my_authors.csv doesn't exist, import all_authors data and find my_authors data
-    new_authors_ls=my_books['Author'].to_list()
-    ##create empty dataframe
-    my_authors=pd.DataFrame({'Author':new_authors_ls,'author_id':np.nan, 'birthplace':np.nan,'author_gender':np.nan})
+    my_authors=pd.DataFrame(columns={'Author':my_books['Author'].to_list()})
+    authors_ls=my_books['Author'].to_list()
     #Find my_author details in all _authors dataset
-    #my_authors=find_author(new_authors_ls,all_authors)
+    my_authors=find_author(authors_ls,all_authors)
+    #add author where no details found 
+    
     #export my_authors dataframe to csv
     #my_authors.rename(columns={'author_name':'Author'},inplace=True)
-    #my_authors.to_csv('my_authors.csv',index=False)
-        
-
+    my_authors.to_csv('my_authors.csv',index=False)
+    #new_authors_ls=get_new_authors(my_books,my_authors)
+#new_authors_ls=get_new_authors(my_books,my_authors)
+#%%
 #3. GET AUTHOR DATA FOR MY_BOOKS
 #Find where there are new authors in my_books
 
@@ -159,10 +182,10 @@ if len(new_authors_ls)>0:
     #Join onto my_authors data 
     my_authors=pd.concat([my_authors,new_author_df])
         #Export updated my_authors data
-    my_authors.to_csv('my_authors.csv',index=False)
+    
 else: 
     pass
-
+my_authors.to_csv('my_authors.csv',index=False)
 #4. PRINT ERRORS
 
 print('The following authors are missing details: \n')
@@ -219,6 +242,16 @@ def calc_cumul(data):
 
 # ---------GRAPHING FUNCTIONS-----------
 
+
+def set_fig_width(my_books):
+    min_time=my_books['Date Read'].min()
+
+    max_time=my_books['Date Read'].max()
+    #1cm per year
+    w=((max_time-min_time).total_seconds()/3.154e+7)*0.55
+    w=12
+    return w
+
 def bar_chart_time(plot_data,fig, ax, x_var='Date Read',y_var='Book Id',date_label='%m',y_ax_lab='Books'):
     """Takes a dataframe counts per time (with datetime index) and plots a bar chart of counts per time period
         Args:
@@ -266,7 +299,7 @@ def label_bars(ax, labels, label_loc='outside',space=0,str_format='{}',orientati
             
                 
    #%% JOIN AUTHOR DATA ONTO BOOKS 
-
+w=set_fig_width(my_books)
 my_books=my_books.merge(my_authors,how='left',on='Author')
 
 #%% ALL BOOKS SUMMARY
