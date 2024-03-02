@@ -299,7 +299,7 @@ def label_bars(ax, labels, label_loc='outside',space=0,str_format='{}',orientati
             
                 
    #%% JOIN AUTHOR DATA ONTO BOOKS 
-w=set_fig_width(my_books)
+
 my_books=my_books.merge(my_authors,how='left',on='Author')
 
 #%% ALL BOOKS SUMMARY
@@ -310,13 +310,18 @@ fig,ax=plt.subplots()
 bar_chart_time(books_per_year,fig,ax,x_var='Date Read',y_var='Book Id',date_label='%Y')
 label_bars(ax, books_per_year.to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
 plt.savefig('books_per_year.png',dpi=300, bbox_inches = "tight")
+
 #%% THIS YEAR SUMMARY 
-my_book_year=time_period('01/01/2023','31/12/2023')
-books_per_month=books_per_time(my_book_year,'M')
-fig,ax=plt.subplots()
-bar_chart_time(books_per_month,fig,ax,x_var='Date Read',y_var='Book Id',date_label='%b')
-label_bars(ax, books_per_month.to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
-plt.savefig('books_per_month.png',dpi=300, bbox_inches = "tight")
+my_book_year=time_period('01/01/2024')
+if len(my_book_year)>0:
+    books_per_month=books_per_time(my_book_year,'M')
+    fig,ax=plt.subplots()
+    bar_chart_time(books_per_month,fig,ax,x_var='Date Read',y_var='Book Id',date_label='%b')
+    label_bars(ax, books_per_month.to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
+    plt.savefig('books_per_month.png',dpi=300, bbox_inches = "tight")
+else:
+    print("WARNING: no data for time period")
+
 #%% COUNTRY DATA
 
 #new countries per year 
@@ -405,22 +410,26 @@ def change_width(ax, new_value) :
 #%%
 
 fig,ax=plt.subplots(2,3,figsize=(10,10))
-for cont,axis in zip(continent_gb['continent'].unique(),ax.flat):
-    #print(ax[axis])
-    
+max_count=continent_gb['Book Id'].max()
+space=max_count*0.05
+for cont,axis in zip(continent_gb['continent'].dropna().unique(),ax.flat):
+    print(cont)
     axis.title.set_text(cont)
     plot_data=continent_gb[continent_gb['continent']==cont]
-    plot_data.replace({'United States of America':'USA','United Kingdom':'UK'},inplace=True)
-    sns.barplot(data=plot_data,y='birthplace',x='Book Id',ax=axis,palette='viridis')
-    label_bars(axis, plot_data['Book Id'].to_list(), label_loc='outside',space=5,str_format='{:.0f}',orientation='h',fontweight='normal',fontcolor='#333333',fontsize=10)
-    #change_width(axis, .8)
-    
-    axis.set_xlabel('Books Read')
-    
-    axis.set_xticks([])
-    axis.set_xlim([0,continent_gb['Book Id'].max()+5])
-    axis.set_ylim([14,-0.9])
-    axis.set_ylabel(None)
+    if len(plot_data)>0:
+        plot_data.replace({'United States of America':'USA','United Kingdom':'UK'},inplace=True)
+        sns.barplot(data=plot_data,y='birthplace',x='Book Id',ax=axis,palette='viridis')
+        label_bars(axis, plot_data['Book Id'].to_list(), label_loc='outside',space=space,str_format='{:.0f}',orientation='h',fontweight='normal',fontcolor='#333333',fontsize=10)
+        #change_width(axis, .8)
+        
+        axis.set_xlabel('Books Read')
+        
+        axis.set_xticks([])
+        axis.set_xlim([0,max_count+5])
+        axis.set_ylim([14,-0.9])
+        axis.set_ylabel(None)
+    else:
+        pass
     
 
 plt.savefig('books_read_by_authors_continent.png',dpi=300, bbox_inches = "tight")
