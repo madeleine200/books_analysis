@@ -9,7 +9,7 @@ The goodreads_library_export.csv should be in the same folder as the books_analy
 1. Open Anaconda prompt
 2. Create virtual environment and install packages 
 ```
-   conda create --name books-env  python==3.8.8 geopandas pandas numpy os sys datetime matplotlib seaborn
+   conda create --name books-env  python==3.8.8 geopandas pandas numpy matplotlib seaborn
 ```
 ### Running analysis (every time)
 1. Activate virtual environment in Anaconda prompt
