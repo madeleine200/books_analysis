@@ -197,7 +197,7 @@ print(my_authors[(my_authors['birthplace'].isnull())|(my_authors['author_gender'
 #------ANALYSIS FUNCTIONS-------
 #%%
 
-def time_period(my_books,st_date=None,end_date=None):
+def time_period(my_books,st_date,end_date=None):
     """Takes a time period start and end date and gets books read in that time 
         Args:
     st_date (string): start date in format %d/%m%Y (inclusive)
@@ -206,10 +206,8 @@ def time_period(my_books,st_date=None,end_date=None):
     Returns:
     my_books_time (dataframe): subset of my_books where 'Date Read' is within time period
     """
-    if st_date:
-        end_date_dt=dt.datetime.strptime(end_date,'%d/%m/%Y')
-    else: 
-        st_date_dt=my_books['Date Read'].min()
+    st_date_dt=dt.datetime.strptime(st_date,'%d/%m/%Y')
+   
     if end_date:
         end_date_dt=dt.datetime.strptime(end_date,'%d/%m/%Y')
     else: 
@@ -309,7 +307,7 @@ my_books=my_books.merge(my_authors,how='left',on='Author')
 
 #%% ALL BOOKS SUMMARY
 
-my_book_year=time_period(my_books)
+my_book_year=time_period(my_books,st_date='01/01/2010')
 books_per_year=books_per_time(my_book_year,'Y')
 fig,ax=plt.subplots()
 bar_chart_time(books_per_year,fig,ax,x_var='Date Read',y_var='Book Id',date_label='%Y')
@@ -317,7 +315,7 @@ label_bars(ax, books_per_year.to_list(), label_loc='outside',space=0,str_format=
 plt.savefig('books_per_year.png',dpi=300, bbox_inches = "tight")
 
 #%% THIS YEAR SUMMARY 
-my_book_year=time_period('01/01/2024')
+my_book_year=time_period(my_books,st_date='01/01/2024')
 if len(my_book_year)>0:
     books_per_month=books_per_time(my_book_year,'M')
     fig,ax=plt.subplots()
