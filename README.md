@@ -5,13 +5,14 @@ Will also work with a csv of books in the format of the goodreads_library_export
 The goodreads_library_export.csv should be in the same folder as the books_analysis.py file. All outputs will be saved in this folder too. 
 
 ## Folder Structure 
+Output goes into the my_data folder
 ```
 |--books_analysis
    |--books_analysis.py
    |--author_data_all.vs
 |--my_data
    |--goodreads_library_export.csv
-   |--my_authors(output)
+   
 ```
 ### Set up - Spyder 
 1. Open Anaconda prompt
