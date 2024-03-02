@@ -23,6 +23,9 @@ import seaborn as sns
 sns.set_style("darkgrid")
 import geopandas as gpd
 
+
+#test change 
+
 def check_goodreads_csv(filename='goodreads_library_export.csv'): 
     """Checks for a csv containing Goodreads export csv
     Args:
@@ -41,8 +44,8 @@ def check_goodreads_csv(filename='goodreads_library_export.csv'):
     return file_exist 
 
 def get_goodreads_csv(filename='goodreads_library_export.csv',shelf='Read'):
-    dateparse = lambda x: dt.datetime.strptime(x, '%Y/%m/%d') if type(x)!=float else np.nan
-    my_books=pd.read_csv(filename,dtype={'Book Id':str},usecols=['Book Id', 'Title', 'Author', 'Additional Authors',
+    dateparse = lambda x: dt.datetime.strptime(x, '%d/%m/%Y') if type(x)!=float else np.nan
+    my_books=pd.read_csv(filename,dtype={'Book Id':str},usecols=['Book Id', 'Title', 'Author',
             'Number of Pages', 'Year Published', 'Original Publication Year','Date Added','Date Read','Exclusive Shelf','Read Count'],parse_dates=['Date Added','Date Read'],date_parser=dateparse)
     my_books=my_books[my_books['Exclusive Shelf']=='read']
     return my_books 
@@ -133,30 +136,37 @@ all_authors=get_all_authors()
 if check_my_authors():
     #If my_authors.csv exists, import data
     my_authors=get_myauthors()
-    
+    new_authors_ls=get_new_authors(my_books,my_authors)
 else: 
-    #If my_authors.csv doesn't exist, import all_authors data and find my_authors data
     
-    my_authors_ls=my_books['Author'].to_list()
+    #If my_authors.csv doesn't exist, import all_authors data and find my_authors data
+    new_authors_ls=my_books['Author'].to_list()
+    ##create empty dataframe
+    my_authors=pd.DataFrame({'Author':new_authors_ls,'author_id':np.nan, 'birthplace':np.nan,'author_gender':np.nan})
     #Find my_author details in all _authors dataset
-    my_authors=find_author(my_authors_ls,all_authors)
+    #my_authors=find_author(new_authors_ls,all_authors)
     #export my_authors dataframe to csv
-    my_authors.rename(columns={'author_name':'Author'},inplace=True)
-    my_authors.to_csv('my_authors.csv',index=False)
+    #my_authors.rename(columns={'author_name':'Author'},inplace=True)
+    #my_authors.to_csv('my_authors.csv',index=False)
         
 
 #3. GET AUTHOR DATA FOR MY_BOOKS
 #Find where there are new authors in my_books
-new_authors_ls=get_new_authors(my_books,my_authors)
-if len(new_authors_ls)>=1:
+
+if len(new_authors_ls)>0:
     #Search for author deatils in all_authors data
     new_author_df=find_author(new_authors_ls,all_authors)
     #Join onto my_authors data 
-    my_authors=pd.concat([my_authors,new_author_data])
-    #Export updated my_authors data
+    my_authors=pd.concat([my_authors,new_author_df])
+        #Export updated my_authors data
     my_authors.to_csv('my_authors.csv',index=False)
 else: 
     pass
+
+#4. PRINT ERRORS
+
+print('The following authors are missing details: \n')
+print(my_authors[(my_authors['birthplace'].isnull())|(my_authors['author_gender'].isnull())])
 
 
 #------ANALYSIS FUNCTIONS-------
