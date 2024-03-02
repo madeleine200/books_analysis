@@ -275,9 +275,9 @@ def truncate_cmap(cmap,minval=0,maxval=1,n=100):
         'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name,a=minval,b=maxval),cmap(np.linspace(minval,maxval,n)))
     return new_cmap
 
-def data_labels(ax,x,y,labels):
+def data_labels(ax,x,y,labels,space):
     for x,y,lab in zip(x,y,labels):                                       # <--
-        ax.annotate(f'{lab}', xy=(x,y+2), textcoords='data')
+        ax.annotate(f'{lab}', xy=(x,y+space), textcoords='data')
     
 def label_bars(ax, labels, label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='normal',fontcolor='#333333',fontsize=10):
     for bar,label in zip(ax.patches,labels):
@@ -337,7 +337,7 @@ fig,ax=plt.subplots()
 
 #country_per_year['Date Read']=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y'))
 sns.lineplot(data=country_per_year,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y='cumulative',marker='o')
-data_labels(ax,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y=country_per_year['cumulative'],labels=country_per_year['cumulative'])
+data_labels(ax,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y=country_per_year['cumulative'],labels=country_per_year['cumulative'],space=0.2)
 ax1=ax.twiny()
 bar_chart_time(country_per_year,fig,ax1,x_var='Date Read',y_var='birthplace',date_label='%Y')
 label_bars(ax1, country_per_year['birthplace'].to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
