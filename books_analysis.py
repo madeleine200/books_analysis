@@ -158,7 +158,7 @@ all_authors=get_all_authors()
 if check_my_authors():
     #If my_authors.csv exists, import data
     my_authors=get_myauthors()
-    new_authors_ls=get_new_authors(my_books,my_authors)
+    
 else: 
     #If my_authors.csv doesn't exist, import all_authors data and find my_authors data
     my_authors=pd.DataFrame(columns={'Author':my_books['Author'].to_list()})
@@ -175,7 +175,7 @@ else:
 #%%
 #3. GET AUTHOR DATA FOR MY_BOOKS
 #Find where there are new authors in my_books
-
+new_authors_ls=get_new_authors(my_books,my_authors)
 if len(new_authors_ls)>0:
     #Search for author deatils in all_authors data
     new_author_df=find_author(new_authors_ls,all_authors)
