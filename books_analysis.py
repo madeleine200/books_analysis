@@ -56,7 +56,9 @@ def check_goodreads_csv(filename='goodreads_library_export.csv'):
 def get_goodreads_csv(filename='goodreads_library_export.csv',shelf='Read'):
     dateparse = lambda x: dt.datetime.strptime(x, '%d/%m/%Y') if type(x)!=float else np.nan
     my_books=pd.read_csv(filename,dtype={'Book Id':str},usecols=['Book Id', 'Title', 'Author',
-            'Number of Pages', 'Year Published', 'Original Publication Year','Date Added','Date Read','Exclusive Shelf','Read Count'],parse_dates=['Date Added','Date Read'],date_parser=dateparse)
+            'Number of Pages', 'Year Published', 'Original Publication Year','Date Added','Date Read','Exclusive Shelf','Read Count'])
+    my_books['Date Added']=pd.to_datetime(my_books['Date Added'])
+    my_books['Date Read']=pd.to_datetime(my_books['Date Read'])
     my_books=my_books[my_books['Exclusive Shelf']=='read']
     return my_books 
     
@@ -64,7 +66,7 @@ def clean_book_data(my_books):
     #Fill in missing values for 'Original Publication Year' with values from 'Year Published'
     my_books['Original Publication Year'].fillna(my_books['Year Published'],inplace=True)
     #fill in missing valuesfor 'Date Read' with 'Date Added'
-    #my_books['Date Read'].fillna(my_books['Date Added'],inplace=True)
+    my_books['Date Read'].fillna(my_books['Date Added'],inplace=True)
     
     return my_books 
 
@@ -195,7 +197,7 @@ print(my_authors[(my_authors['birthplace'].isnull())|(my_authors['author_gender'
 #------ANALYSIS FUNCTIONS-------
 #%%
 
-def time_period(st_date,end_date=None):
+def time_period(my_books,st_date=None,end_date=None):
     """Takes a time period start and end date and gets books read in that time 
         Args:
     st_date (string): start date in format %d/%m%Y (inclusive)
@@ -204,7 +206,10 @@ def time_period(st_date,end_date=None):
     Returns:
     my_books_time (dataframe): subset of my_books where 'Date Read' is within time period
     """
-    st_date_dt=dt.datetime.strptime(st_date,'%d/%m/%Y')
+    if st_date:
+        end_date_dt=dt.datetime.strptime(end_date,'%d/%m/%Y')
+    else: 
+        st_date_dt=my_books['Date Read'].min()
     if end_date:
         end_date_dt=dt.datetime.strptime(end_date,'%d/%m/%Y')
     else: 
@@ -304,7 +309,7 @@ my_books=my_books.merge(my_authors,how='left',on='Author')
 
 #%% ALL BOOKS SUMMARY
 
-my_book_year=time_period('01/01/2016')
+my_book_year=time_period(my_books)
 books_per_year=books_per_time(my_book_year,'Y')
 fig,ax=plt.subplots()
 bar_chart_time(books_per_year,fig,ax,x_var='Date Read',y_var='Book Id',date_label='%Y')
