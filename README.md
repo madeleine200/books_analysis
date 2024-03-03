@@ -13,6 +13,10 @@ The code produces several graphs as output:
 ### Author Countries per Year
 This shows the number of new author countries added per year (bars) and the cumulative number of author countries read (line). <br>
 <img src="https://github.com/madeleine200/books_analysis/assets/38779248/7756fbb8-4688-4c21-b9ae-cee86ba39bc9" width=40% height=40%>
+### Map of Author Countries 
+Map showing the number of books read by authors from each country.  <br>
+<img src="https://github.com/madeleine200/books_analysis/assets/38779248/3cf8361a-5039-4664-a0e4-518a6df3c0b6" width=40% height=40%>
+
 
 
 ## Folder Structure 
