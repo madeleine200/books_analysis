@@ -472,13 +472,10 @@ try:
     fig,ax = plt.subplots(1,2,width_ratios=[3, 1],figsize=(12,6))
 
     gender_plot=my_books[['Author','Book Id','Date Read','author_gender']].set_index('Date Read').groupby([pd.Grouper(freq='Y'),'author_gender']).count().reset_index().sort_values(by='Author',ascending=False)
-    dates_list=pd.date_range(gender_plot['Date Read'].min().date(),dt.datetime.now()+dt.timedelta(days=365),freq='Y')
-    dates_df=pd.DataFrame({'Date Read':pd.Series(dates_list.append(dates_list)),'author_gender':pd.Series(['male']*(len(gender_plot['Date Read'].unique()))+['female']*(len(gender_plot['Date Read'].unique())))})
-    gender_plot=gender_plot.merge(dates_df,how='right',on=['Date Read','author_gender']).fillna(0)
     gender_plot2=pd.melt(gender_plot.rename(columns={'Book Id':'Books','Author':'Authors'}),id_vars=['Date Read','author_gender'], value_vars=['Books']).sort_values('Date Read')
-
+    gender_plot2=gender_plot2[(gender_plot2['author_gender']=='male')|(gender_plot2['author_gender']=='female')]
     sns.barplot(data=gender_plot2,y='value',x='Date Read',hue='author_gender',palette='viridis',ax=ax[0])
-    label_bars(ax[0], gender_plot2.sort_values(['author_gender','Date Read'],ascending=[False,True])['value'].to_list(), label_loc='outside',space=1,str_format='{:.0f}',orientation='v',fontweight='normal',fontcolor='#333333',fontsize=10)
+    #label_bars(ax[0], gender_plot2.sort_values(['author_gender','Date Read'],ascending=[False,True])['value'].to_list(), label_loc='outside',space=1,str_format='{:.0f}',orientation='v',fontweight='normal',fontcolor='#333333',fontsize=10)
     ax[0].set_xticklabels([dt.datetime.strftime(i,'%Y') for i in gender_plot2['Date Read'].drop_duplicates().to_list()])
     axis.set_ylabel('Books Read')
     ax[0].title.set_text('By Year')
