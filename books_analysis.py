@@ -240,7 +240,20 @@ def calc_cumul(data):
     data['cumulative%']=(data['cumulative'].div(193).round(2))*100
     return data
 
+def decade(x):
+    """Converts a year string (eg 2023) to decade (2020s) 
+        Args:
+    x (string): string of year eg 2023
 
+    Returns:
+    deacde (str): decade that the year is in
+    """
+    x_str=str(x)
+    x_list=list(x_str)
+    decade=x_list[0:3]
+    decade.append('0s')
+    decade=''.join(decade)
+    return decade
 
 
 # ---------GRAPHING FUNCTIONS-----------
@@ -340,7 +353,7 @@ fig,ax=plt.subplots()
 
 #country_per_year['Date Read']=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y'))
 sns.lineplot(data=country_per_year,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y='cumulative',marker='o')
-data_labels(ax,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y=country_per_year['cumulative'],labels=country_per_year['cumulative'],space=0.2)
+data_labels(ax,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y=country_per_year['cumulative'],labels=country_per_year['cumulative'],space=0.5)
 ax1=ax.twiny()
 bar_chart_time(country_per_year,fig,ax1,x_var='Date Read',y_var='birthplace',date_label='%Y')
 label_bars(ax1, country_per_year['birthplace'].to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
@@ -437,6 +450,49 @@ for cont,axis in zip(continent_gb['continent'].dropna().unique(),ax.flat):
 
 plt.savefig('books_read_by_authors_continent.png',dpi=300, bbox_inches = "tight")
 plt.show()
+#%% 
+try: 
+    my_books['decadePublished']=my_books['Original Publication Year'].apply(lambda x: decade(x))
+    pub_plot=my_books[['decadePublished','Book Id']].groupby('decadePublished').nunique().reset_index()
+    
+    fig,ax = plt.subplots(figsize=(10,5))
+    sns.barplot(data=pub_plot,x='decadePublished',y='Book Id',palette='viridis')
+    label_bars(ax, pub_plot['Book Id'], label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
+    ax.set_ylabel('Books Read')
+    ax.set_xlabel('Original Publication Decade')
+    plt.savefig('decade_published.png',dpi=300, bbox_inches = "tight")
+    plt.show()
+except Exception as e:
+       # Print Error Message
+        print("ERROR plotting decade published data. The error is: ",e)
+
+#%% PLOT BY AUTHOR GENDER 
+
+try: 
+    fig,ax = plt.subplots(1,2,width_ratios=[3, 1],figsize=(12,6))
+
+    gender_plot=my_books[['Author','Book Id','Date Read','author_gender']].set_index('Date Read').groupby([pd.Grouper(freq='Y'),'author_gender']).count().reset_index().sort_values(by='Author',ascending=False)
+    dates_list=pd.date_range(gender_plot['Date Read'].min().date(),dt.datetime.now()+dt.timedelta(days=365),freq='Y')
+    dates_df=pd.DataFrame({'Date Read':pd.Series(dates_list.append(dates_list)),'author_gender':pd.Series(['male']*(len(gender_plot['Date Read'].unique()))+['female']*(len(gender_plot['Date Read'].unique())))})
+    gender_plot=gender_plot.merge(dates_df,how='right',on=['Date Read','author_gender']).fillna(0)
+    gender_plot2=pd.melt(gender_plot.rename(columns={'Book Id':'Books','Author':'Authors'}),id_vars=['Date Read','author_gender'], value_vars=['Books']).sort_values('Date Read')
+
+    sns.barplot(data=gender_plot2,y='value',x='Date Read',hue='author_gender',palette='viridis',ax=ax[0])
+    label_bars(ax[0], gender_plot2.sort_values(['author_gender','Date Read'],ascending=[False,True])['value'].to_list(), label_loc='outside',space=1,str_format='{:.0f}',orientation='v',fontweight='normal',fontcolor='#333333',fontsize=10)
+    ax[0].set_xticklabels([dt.datetime.strftime(i,'%Y') for i in gender_plot2['Date Read'].drop_duplicates().to_list()])
+    axis.set_ylabel('Books Read')
+    ax[0].title.set_text('By Year')
+    gender_plot_all=my_books[['Author','Book Id','author_gender']].groupby('author_gender').nunique().reset_index().rename(columns={'Book Id':'Books','Author':'Authors'}).sort_values(by='Authors',ascending=False)
+    gender_plot_all['percentage']=(gender_plot_all['Books']/gender_plot_all['Books'].sum())*100
+    ax[1].pie(gender_plot_all['Books'],labels=['{} ({:.0f}%)'.format(i,j) for i,j in zip(gender_plot_all['author_gender'],gender_plot_all['percentage'])])
+    ax[1].title.set_text('Overall')
+
+    plt.savefig('author_gender.png',dpi=300, bbox_inches = "tight")
+    plt.show()
+except Exception as e:
+       # Print Error Message
+        print("ERROR plotting author gender data. The error is: ",e)
+        
 #%%
 '''
 sns.set_theme(style='white')
