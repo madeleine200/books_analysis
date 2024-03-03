@@ -478,10 +478,11 @@ try:
     #label_bars(ax[0], gender_plot2.sort_values(['author_gender','Date Read'],ascending=[False,True])['value'].to_list(), label_loc='outside',space=1,str_format='{:.0f}',orientation='v',fontweight='normal',fontcolor='#333333',fontsize=10)
     ax[0].set_xticklabels([dt.datetime.strftime(i,'%Y') for i in gender_plot2['Date Read'].drop_duplicates().to_list()])
     axis.set_ylabel('Books Read')
-    ax[0].title.set_text('By Year')
+    #ax[0].title.set_text('By Year')
     gender_plot_all=my_books[['Author','Book Id','author_gender']].groupby('author_gender').nunique().reset_index().rename(columns={'Book Id':'Books','Author':'Authors'}).sort_values(by='Authors',ascending=False)
     gender_plot_all['percentage']=(gender_plot_all['Books']/gender_plot_all['Books'].sum())*100
-    ax[1].pie(gender_plot_all['Books'],labels=['{} ({:.0f}%)'.format(i,j) for i,j in zip(gender_plot_all['author_gender'],gender_plot_all['percentage'])])
+    
+    ax[1].pie(gender_plot_all['Books'],labels=['{} ({:.0f}%)'.format(i,j) for i,j in zip(gender_plot_all['author_gender'],gender_plot_all['percentage'])],colors=[ax[0].patches[0].get_facecolor(),ax[0].patches[-1].get_facecolor()])
     ax[1].title.set_text('Overall')
 
     plt.savefig('author_gender.png',dpi=300, bbox_inches = "tight")
