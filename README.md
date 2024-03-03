@@ -7,11 +7,11 @@ For authors that are missing author data (birhtplace, gender) you can edit the m
 ## Outputs
 The code produces several graphs as output: 
 ### Books Read per Year (all time)
-<img src="https://github.com/madeleine200/books_analysis/assets/38779248/aeb5cb56-4054-4c9f-9921-6d8e0ea47f38" width=50% height=50%>
+<img src="https://github.com/madeleine200/books_analysis/assets/38779248/aeb5cb56-4054-4c9f-9921-6d8e0ea47f38" width=40% height=40%> <br>
 ### Books Read This Year (by month)
-<img src="https://github.com/madeleine200/books_analysis/assets/38779248/40d4b0a0-5b3a-4cc7-a188-1569ab8df57b" width=30% height=30%>
+<img src="https://github.com/madeleine200/books_analysis/assets/38779248/40d4b0a0-5b3a-4cc7-a188-1569ab8df57b" width=40% height=40%> <br>
 ### Author Countries per Year
-This shows the number of new author countries added per year (bars) and the cumulative number of author countries read (line)
+This shows the number of new author countries added per year (bars) and the cumulative number of author countries read (line). <br>
 <img src="https://github.com/madeleine200/books_analysis/assets/38779248/7756fbb8-4688-4c21-b9ae-cee86ba39bc9" width=40% height=40%>
 
 
