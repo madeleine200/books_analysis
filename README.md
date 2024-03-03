@@ -7,7 +7,7 @@ For authors that are missing author data (birhtplace, gender) you can edit the m
 ## Outputs
 The code produces several graphs as output: 
 # Books Read per Year (all time)
-![books_per_year](https://github.com/madeleine200/books_analysis/assets/38779248/aeb5cb56-4054-4c9f-9921-6d8e0ea47f38)
+<img src="https://github.com/madeleine200/books_analysis/assets/38779248/aeb5cb56-4054-4c9f-9921-6d8e0ea47f38" width=50% height=50%>
 
 ## Folder Structure 
 Set up your folder structure as below. Output goes into the my_data folder 
