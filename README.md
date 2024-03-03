@@ -4,6 +4,10 @@ Designed to work with Goodreads data exported as csv (see instuctions here: http
 Will also work with a csv of books in the format of the goodreads_library_export.csv blank csv. Just ensure that all entries are in the same format (particularly dates). The Book Id is used to count the individual books, so if you don't have the Good reads ID, just fill it in with any unique integer. <br>
 The goodreads_library_export.csv should be in the my_data folder. All outputs will be saved in this folder too. 
 For authors that are missing author data (birhtplace, gender) you can edit the my_authors.csv that is produced as output and add those fields manually. 
+## Outputs
+The code produces several graphs as output: 
+# Books Read per Year (all time)
+![books_per_year](https://github.com/madeleine200/books_analysis/assets/38779248/aeb5cb56-4054-4c9f-9921-6d8e0ea47f38)
 
 ## Folder Structure 
 Set up your folder structure as below. Output goes into the my_data folder 
