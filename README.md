@@ -16,6 +16,10 @@ This shows the number of new author countries added per year (bars) and the cumu
 Map showing the number of books read by authors from each country.  <br>
 <img src="https://github.com/madeleine200/books_analysis/assets/38779248/3cf8361a-5039-4664-a0e4-518a6df3c0b6" width=40% height=40%>
 
+### Author Countries by Continent
+<img src="https://github.com/madeleine200/books_analysis/assets/38779248/c228d6d7-429d-48ef-9863-ff3f89b02533" width=40% height=40%>
+
+
 ## Folder Structure 
 Set up your folder structure as below. Output goes into the my_data folder. <br>
 The goodreads_library_export.csv should be in the my_data folder. All outputs will be saved in this folder too. 
