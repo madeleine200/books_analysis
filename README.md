@@ -56,7 +56,7 @@ spyder
 ### Troubleshooting
 If you get the following error: 
 ```
-'spyder' is not recongized as an internal or external command, operable program of batch file
+'spyder' is not recongized as an internal or external command, operable program or batch file
 ```
 Try installing Spyder using: 
 ```
