@@ -32,7 +32,11 @@ For authors that are missing author data (birhtplace, gender) you can edit the m
    |--goodreads_library_export.csv
    
 ```
-### Set up - Spyder 
+## Set up: General 
+The python code should be run in a virtual environment. Create a virtual environment and install the following packages: <br>
+geopandas <br> pandas <br> numpy <br> matplotlib <br> seaborn <br>
+
+### Set up: Spyder 
 1. Open Anaconda prompt
 2. Create virtual environment and install packages 
 ```
@@ -49,4 +53,10 @@ conda activate books-env
 ```
 spyder
 ```
-
+### Troubleshooting
+If you get the following error: 
+``` 'spyder' is not recongized as an internal or external command, operable program of batch file
+```
+Try installing Spyder using: 
+``` conda install spyder
+```
