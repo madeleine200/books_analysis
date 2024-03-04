@@ -27,7 +27,7 @@ For authors that are missing author data (birhtplace, gender) you can edit the m
 ```
 |--books_analysis
    |--books_analysis.py
-   |--author_data_all.vs
+   |--author_data_all.csv
 |--my_data
    |--goodreads_library_export.csv
    
