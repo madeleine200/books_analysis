@@ -2,13 +2,10 @@
 """
 Created on Sat Feb 24 15:43:16 2024
 
-@author: madel
+@author: madeleine
 
-code for analysing book data. 
-TO DO: 
-    1. ANALYSIS FUNCTIONS
-    2. GRAPHING FUNCTIONS
-    3. CLEAN STRING INPUTS
+INSTRUCTIONS: 
+    
 
 """
 
@@ -17,14 +14,15 @@ import numpy as np
 import os
 import sys
 import datetime as dt
+import warnings
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import seaborn as sns
 sns.set_style("darkgrid")
 import geopandas as gpd
 
-
-
+#supress warnings
+warnings.filterwarnings("ignore")
 
 def check_my_data_dir(my_data_dir):
     #set my_data directory 
@@ -134,6 +132,8 @@ def get_new_authors(my_books,my_authors):
         
     new_authors=my_books[~my_books['Author'].isin(my_authors['Author'])]
     return new_authors['Author'].unique()
+
+
 #%%
 #-----------IMPORT AND UPDATE BOOKS AND AUTHOR DATA------------------
 #1. CHECK THAT MY_DATA DIRECTORY EXISTS 
@@ -190,8 +190,12 @@ else:
 my_authors.to_csv('my_authors.csv',index=False)
 #4. PRINT ERRORS
 
-print('The following authors are missing details: \n')
-print(my_authors[(my_authors['birthplace'].isnull())|(my_authors['author_gender'].isnull())])
+missing=my_authors[(my_authors['birthplace'].isnull())|(my_authors['author_gender'].isnull())]
+if len(missing)>0:
+    print('The following authors are missing data: {}'.format(missing['Author'].to_list()))
+else:
+    pass
+
 
 
 #------ANALYSIS FUNCTIONS-------
@@ -319,24 +323,31 @@ def label_bars(ax, labels, label_loc='outside',space=0,str_format='{}',orientati
 my_books=my_books.merge(my_authors,how='left',on='Author')
 
 #%% ALL BOOKS SUMMARY
-
-my_book_year=time_period(my_books,st_date='01/01/2010')
-books_per_year=books_per_time(my_book_year,'Y')
-fig,ax=plt.subplots()
-bar_chart_time(books_per_year,fig,ax,x_var='Date Read',y_var='Book Id',date_label='%Y')
-label_bars(ax, books_per_year.to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
-plt.savefig('books_per_year.png',dpi=300, bbox_inches = "tight")
+try:
+    my_book_year=time_period(my_books,st_date='01/01/2005')
+    books_per_year=books_per_time(my_book_year,'Y')
+    fig,ax=plt.subplots()
+    bar_chart_time(books_per_year,fig,ax,x_var='Date Read',y_var='Book Id',date_label='%Y')
+    label_bars(ax, books_per_year.to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
+    plt.savefig('books_per_year.png',dpi=300, bbox_inches = "tight")
+except Exception as e:
+       # Print Error Message
+        print("ERROR plotting decade published data. The error is: ",e)
 
 #%% THIS YEAR SUMMARY 
-my_book_year=time_period(my_books,st_date='01/01/2024')
-if len(my_book_year)>0:
-    books_per_month=books_per_time(my_book_year,'M')
-    fig,ax=plt.subplots()
-    bar_chart_time(books_per_month,fig,ax,x_var='Date Read',y_var='Book Id',date_label='%b')
-    label_bars(ax, books_per_month.to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
-    plt.savefig('books_per_month.png',dpi=300, bbox_inches = "tight")
-else:
-    print("WARNING: no data for time period")
+try:
+    my_book_year=time_period(my_books,st_date='01/01/2024')
+    if len(my_book_year)>0:
+        books_per_month=books_per_time(my_book_year,'M')
+        fig,ax=plt.subplots()
+        bar_chart_time(books_per_month,fig,ax,x_var='Date Read',y_var='Book Id',date_label='%b')
+        label_bars(ax, books_per_month.to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
+        plt.savefig('books_per_month.png',dpi=300, bbox_inches = "tight")
+    else:
+        print("WARNING: no data for time period")
+except Exception as e:
+       # Print Error Message
+        print("ERROR plotting books read this year. The error is: ",e)
 
 #%% COUNTRY DATA
 
@@ -349,20 +360,24 @@ country_per_year=calc_cumul(country_per_year)
 
 #books_per_time=author_country_time.reset_index()['birthplace'].groupby(pd.Grouper(freq='Y')).nunique()
 #%%
-fig,ax=plt.subplots()
-
-#country_per_year['Date Read']=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y'))
-sns.lineplot(data=country_per_year,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y='cumulative',marker='o')
-data_labels(ax,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y=country_per_year['cumulative'],labels=country_per_year['cumulative'],space=0.5)
-ax1=ax.twiny()
-bar_chart_time(country_per_year,fig,ax1,x_var='Date Read',y_var='birthplace',date_label='%Y')
-label_bars(ax1, country_per_year['birthplace'].to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
-ax1.set_xticklabels([])
-ax1.set_xticks([])
-ax1.set_xlabel(None)
-ax.set_ylabel('Author Countries')
-plt.savefig('author_countries_per_year.png',dpi=300, bbox_inches = "tight")
-plt.show()
+try:
+    fig,ax=plt.subplots()
+    
+    #country_per_year['Date Read']=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y'))
+    sns.lineplot(data=country_per_year,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y='cumulative',marker='o')
+    data_labels(ax,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y=country_per_year['cumulative'],labels=country_per_year['cumulative'],space=0.5)
+    ax1=ax.twiny()
+    bar_chart_time(country_per_year,fig,ax1,x_var='Date Read',y_var='birthplace',date_label='%Y')
+    label_bars(ax1, country_per_year['birthplace'].to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
+    ax1.set_xticklabels([])
+    ax1.set_xticks([])
+    ax1.set_xlabel(None)
+    ax.set_ylabel('Author Countries')
+    plt.savefig('author_countries_per_year.png',dpi=300, bbox_inches = "tight")
+    plt.show()
+except Exception as e:
+       # Print Error Message
+        print("ERROR plotting author countries by year. The error is: ",e)
 
 #%%% MAP OF AUTHORS 
 
@@ -386,6 +401,13 @@ def plot_map(fig,ax,country_count,world_outline,count_var='Book Id'):
     ax.set_xlim([-182,182])
     ax.set_axis_off()
     
+def show_countries(continent='all'):
+    world_df=gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+    world_df=world_df[['continent', 'name']]
+    if continent=='all':
+        print(world_df)
+    else:
+        print(world_df[world_df['continent']==continent])
 #%% 
 
 
@@ -396,12 +418,15 @@ country_plot_mlt=pd.melt(country_plot.rename(columns={'Book Id':'Books','Author'
 
 country_count,world_outline=join_country_data(country_plot[['birthplace','Book Id']])
 #%% 
+try:
+    fig,ax=plt.subplots(figsize=(10,10))
+    plot_map(fig,ax,country_count,world_outline)
+    plt.savefig('author_countries_map.png',dpi=300, bbox_inches = "tight")
+    plt.show()
 
-fig,ax=plt.subplots(figsize=(10,10))
-plot_map(fig,ax,country_count,world_outline)
-plt.savefig('author_countries_map.png',dpi=300, bbox_inches = "tight")
-plt.show()
-
+except Exception as e:
+       # Print Error Message
+        print("ERROR plotting countries map. The error is: ",e)
 
 #%% LIST BY CONTINENT 
 
@@ -423,33 +448,40 @@ def change_width(ax, new_value) :
         # we recenter the bar
         patch.set_y(patch.get_y() + diff * .5)
         
-#%%
-
-fig,ax=plt.subplots(2,3,figsize=(10,10))
-max_count=continent_gb['Book Id'].max()
-space=max_count*0.05
-for cont,axis in zip(continent_gb['continent'].dropna().unique(),ax.flat):
-    print(cont)
-    axis.title.set_text(cont)
-    plot_data=continent_gb[continent_gb['continent']==cont]
-    if len(plot_data)>0:
-        plot_data.replace({'United States of America':'USA','United Kingdom':'UK'},inplace=True)
-        sns.barplot(data=plot_data,y='birthplace',x='Book Id',ax=axis,palette='viridis')
-        label_bars(axis, plot_data['Book Id'].to_list(), label_loc='outside',space=space,str_format='{:.0f}',orientation='h',fontweight='normal',fontcolor='#333333',fontsize=10)
-        #change_width(axis, .8)
+#%% PLOT: BOOKS READ PER COUNTRY, GROUPED BY CONTINENT
+try:
+    fig,ax=plt.subplots(2,3,figsize=(10,10))
+    max_count=continent_gb['Book Id'].max()
+    space=max_count*0.05
+    for cont,axis in zip(continent_gb['continent'].dropna().unique(),ax.flat):
+        axis.title.set_text(cont)
+        plot_data=continent_gb[continent_gb['continent']==cont]
+        if len(plot_data)>0:
+            plot_data.replace({'United States of America':'USA','United Kingdom':'UK'},inplace=True)
+            sns.barplot(data=plot_data,y='birthplace',x='Book Id',ax=axis,palette='viridis')
+            label_bars(axis, plot_data['Book Id'].to_list(), label_loc='outside',space=space,str_format='{:.0f}',orientation='h',fontweight='normal',fontcolor='#333333',fontsize=10)
+            #change_width(axis, .8)
+            axis.set_xlabel('Books Read')
+            
+            axis.set_xticks([])
+            axis.set_xlim([0,max_count+5])
+            axis.set_ylim([14,-0.9])
+            axis.set_ylabel(None)
+        else:
+            pass
         
-        axis.set_xlabel('Books Read')
-        
-        axis.set_xticks([])
-        axis.set_xlim([0,max_count+5])
-        axis.set_ylim([14,-0.9])
-        axis.set_ylabel(None)
+    plt.savefig('books_read_by_authors_continent.png',dpi=300, bbox_inches = "tight")
+    plt.show()
+    #Show countries that weren't mapped
+    missing=continent_gb[continent_gb['continent'].isnull()]
+    if len(missing)>0:
+        print('The following countries were not mapped: {}'.format(missing['birthplace'].unique()))
     else:
         pass
-    
 
-plt.savefig('books_read_by_authors_continent.png',dpi=300, bbox_inches = "tight")
-plt.show()
+except Exception as e:
+       # Print Error Message
+        print("ERROR plotting books by continent. The error is: ",e)
 #%% 
 try: 
     my_books['decadePublished']=my_books['Original Publication Year'].apply(lambda x: decade(x))
