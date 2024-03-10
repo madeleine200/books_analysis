@@ -52,7 +52,13 @@ def check_goodreads_csv(filename='goodreads_library_export.csv'):
     return file_exist 
 
 def get_goodreads_csv(filename='goodreads_library_export.csv',shelf='Read'):
-    dateparse = lambda x: dt.datetime.strptime(x, '%d/%m/%Y') if type(x)!=float else np.nan
+    """Imports Goodreads library export csv
+    Args:
+    filename (str): filename of csv containing goodreads data. Default: 'goodreads_library_export.csv'
+
+    Returns:
+    my_books (dataframe): Dataframe containing books read 
+    """
     my_books=pd.read_csv(filename,dtype={'Book Id':str},usecols=['Book Id', 'Title', 'Author',
             'Number of Pages', 'Year Published', 'Original Publication Year','Date Added','Date Read','Exclusive Shelf','Read Count'])
     my_books['Date Added']=pd.to_datetime(my_books['Date Added'])
@@ -61,6 +67,13 @@ def get_goodreads_csv(filename='goodreads_library_export.csv',shelf='Read'):
     return my_books 
     
 def clean_book_data(my_books):
+    """ Cleans books data - missing values
+    Args:
+    my_books (dataframe): Dataframe of books read
+
+    Returns:
+    my_books (dataframe): Dataframe of books read (cleaned) 
+    """
     #Fill in missing values for 'Original Publication Year' with values from 'Year Published'
     my_books['Original Publication Year'].fillna(my_books['Year Published'],inplace=True)
     #fill in missing valuesfor 'Date Read' with 'Date Added'
@@ -240,7 +253,13 @@ def books_per_time(my_books,time_group='M',count_var='Book Id'):
     books_per_time=my_books_dtidx[count_var].groupby(pd.Grouper(freq=time_group)).nunique()
     return books_per_time
 
-def author_country_time(my_books,time_group='Y'):
+def author_country_time(my_books):
+    """Gets first date that an author country was added 
+    Args:
+    my_books (dataframe): dataframe of books read 
+    Returns:
+    country_time (dataframe): dtaframe grouped by country, taking the first date from each country group 
+    """
     country_time=my_books[['Author','Title','birthplace','Date Read']].sort_values('Date Read').groupby('birthplace').first()
     
     return country_time
@@ -329,9 +348,11 @@ def label_bars(ax, labels, label_loc='outside',space=0,str_format='{}',orientati
 
 my_books=my_books.merge(my_authors,how='left',on='Author')
 
+earliest_data=my_books['Date Read'].min()
+
 #%% ALL BOOKS SUMMARY
 try:
-    my_book_year=time_period(my_books,st_date='01/01/2005')
+    my_book_year=time_period(my_books,st_date=dt.datetime.strftime(earliest_data,'%d/%m/%Y'))
     books_per_year=books_per_time(my_book_year,'Y')
     fig,ax=plt.subplots()
     bar_chart_time(books_per_year,fig,ax,x_var='Date Read',y_var='Book Id',date_label='%Y')
@@ -356,22 +377,21 @@ except Exception as e:
        # Print Error Message
         print("ERROR plotting books read this year. The error is: ",e)
 
-#%% COUNTRY DATA
+#%% COUNTRY DATA: NEW AUTHOR COUNTIRES PER YEAR 
 
-#new countries per year 
 #get year before year added 
-earliest_data=my_books['Date Read'].min()
+#where no date data, ad to year before first books added
 yr_before=earliest_data-dt.timedelta(days=365)
-country_time=author_country_time(my_books.fillna(yr_before),time_group='Y')
-
+country_time=author_country_time(my_books.fillna(yr_before))
+#counts books red per time (year)
 country_per_year=books_per_time(country_time.reset_index(),time_group='Y',count_var='birthplace')
+#calculate cumulative authors
 country_per_year=calc_cumul(country_per_year)
 
 #books_per_time=author_country_time.reset_index()['birthplace'].groupby(pd.Grouper(freq='Y')).nunique()
-#%%
+#%% PLOT: CUMULATIVE AUTHORS PER YEAR 
 try:
     fig,ax=plt.subplots()
-    
     #country_per_year['Date Read']=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y'))
     sns.lineplot(data=country_per_year,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y='cumulative',marker='o')
     data_labels(ax,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y=country_per_year['cumulative'],labels=country_per_year['cumulative'],space=0.5)
@@ -390,13 +410,23 @@ except Exception as e:
 
 #%%% MAP OF AUTHORS 
 
-   
+##FUNCTIONS
 
 def clean_country(country_df):
+    #Changes country names to match those in the mappiong datasets 
     country_df=country_df.replace({'United States':'United States of America','Tanzania':'United Republic of Tanzania'})
     return country_df
 
 def join_map_data(my_books,world_df):
+    """Takes a dataframe of books read, and merges country data onto it (for low-res map)
+    Args:
+    my_books (dataframe): dataframe of books read
+    world_df (dataframe): dataframe of geometries for countries from low-res worl map 
+
+    Returns:
+    my_books (dataframe):dataframe of books read
+    world_outline (dataframe):
+    """
     my_books=world_df.merge(my_books,how='outer',left_on='SOVEREIGNT',right_on='birthplace')
     world_outline=my_books.copy()
     world_outline['Book Id'].fillna(0,inplace=True)
