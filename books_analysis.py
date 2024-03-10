@@ -133,7 +133,14 @@ def get_new_authors(my_books,my_authors):
     new_authors=my_books[~my_books['Author'].isin(my_authors['Author'])]
     return new_authors['Author'].unique()
 
-
+def import_country_data(directory='\\'.join(os.getcwd().split('\\')[:-1]),world_file='\\books_analysis\\ne_110m_admin_0_countries\\ne_110m_admin_0_countries.shp',cont_file="\\books_analysis\\sovereign_states.csv"):
+    useful_cols=['SOVEREIGNT','ISO_A3','ADM0_A3','geometry']
+    world_data=gpd.read_file(directory+world_file)
+    world_data=world_data[useful_cols]
+    sov_st=pd.read_csv(directory+cont_file)
+    #cont_data=pd.read_csv(directory+cont_file,usecols=['Code','Continent'])
+    #world_data=world_data.merge(cont_data,how='left',on='Code')
+    return world_data,sov_st
 #%%
 #-----------IMPORT AND UPDATE BOOKS AND AUTHOR DATA------------------
 #1. CHECK THAT MY_DATA DIRECTORY EXISTS 
@@ -352,7 +359,7 @@ except Exception as e:
 #%% COUNTRY DATA
 
 #new countries per year 
-
+###!!!!FIX DATETIME
 country_time=author_country_time(my_books.fillna(dt.datetime(2015,1,1)),time_group='Y')
 
 country_per_year=books_per_time(country_time.reset_index(),time_group='Y',count_var='birthplace')
@@ -381,42 +388,48 @@ except Exception as e:
 
 #%%% MAP OF AUTHORS 
 
+   
 
 def clean_country(country_df):
-    country_df=country_df.replace('United States','United States of America')
+    country_df=country_df.replace({'United States':'United States of America','Tanzania':'United Republic of Tanzania'})
     return country_df
 
-def join_country_data(my_books,world_df=gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))):
-    my_books=world_df.merge(my_books,how='outer',left_on='name',right_on='birthplace')
+def join_map_data(my_books,world_df):
+    my_books=world_df.merge(my_books,how='outer',left_on='SOVEREIGNT',right_on='birthplace')
     world_outline=my_books.copy()
     world_outline['Book Id'].fillna(0,inplace=True)
+    #join on sov states
     return my_books,world_outline
+
+def join_states_data(my_books,sov_states):
+    #join sovereign states data onto books data 
+    my_books=my_books.merge(sov_st,left_on='birthplace',right_on='SOVEREIGNT',how='left')
+    return my_books
 
 
 def plot_map(fig,ax,country_count,world_outline,count_var='Book Id'):
     new_cmap=truncate_cmap(plt.get_cmap('Blues'),0.4,1.0,n=10)
-    world_outline.plot(column=count_var,ax=ax,edgecolor='silver',cmap='Greys')
-    country_count.plot(column=count_var,cmap=new_cmap,edgecolor='silver',linewidth=0.1,ax=ax,legend=True,legend_kwds={"shrink":.3})
+    world_outline.plot(column=count_var,ax=ax,edgecolor='grey',linewidth=0.3,cmap='Greys')
+    country_count.plot(column=count_var,cmap=new_cmap,edgecolor='grey',linewidth=0.3,ax=ax,legend=True,legend_kwds={"shrink":.3})
     ax.set_ylim([-60,90])
     ax.set_xlim([-182,182])
     ax.set_axis_off()
     
 def show_countries(continent='all'):
-    world_df=gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
-    world_df=world_df[['continent', 'name']]
+    world_df=world_df[['CONTINENT', 'SOVEREIGNT']]
     if continent=='all':
         print(world_df)
     else:
-        print(world_df[world_df['continent']==continent])
+        print(world_df[world_df['CONTINENT']==continent])
 #%% 
+my_books=clean_country(my_books)
 
 
-
-country_plot=clean_country(my_books)
-country_plot=country_plot[['Author','Book Id','birthplace']].groupby('birthplace').nunique().reset_index().sort_values(by='Author',ascending=False)
+#country_plot=clean_country(my_books)
+country_plot=my_books[['Author','Book Id','birthplace']].groupby('birthplace').nunique().reset_index().sort_values(by='Author',ascending=False)
 country_plot_mlt=pd.melt(country_plot.rename(columns={'Book Id':'Books','Author':'Authors'}),id_vars='birthplace', value_vars=['Books','Authors'])
-
-country_count,world_outline=join_country_data(country_plot[['birthplace','Book Id']])
+world_data,sov_st=import_country_data()
+country_count,world_outline=join_map_data(country_plot[['birthplace','Book Id']],world_data)
 #%% 
 try:
     fig,ax=plt.subplots(figsize=(10,10))
@@ -429,12 +442,18 @@ except Exception as e:
         print("ERROR plotting countries map. The error is: ",e)
 
 #%% LIST BY CONTINENT 
+region='CONTINENT'
 
-continent_gb=country_count.dropna(subset=['birthplace'])[['continent','birthplace','Book Id']].sort_values(by=['continent','Book Id'],ascending=[True,False])
 
-continent_count=continent_gb.groupby('continent')['Book Id'].sum().reset_index().rename(columns={'Book Id':'Continent_count'})
+my_books=join_states_data(my_books,sov_st)
 
-continent_gb=continent_gb.merge(continent_count,how='left',on='continent').sort_values(['Continent_count','Book Id'],ascending=[False,False])
+country_count=my_books[['Author','Book Id','birthplace',region]].groupby([region,'birthplace']).nunique().reset_index().sort_values(by='Author',ascending=False)
+#country_plot_mlt=pd.melt(country_plot.rename(columns={'Book Id':'Books','Author':'Authors'}),id_vars='birthplace', value_vars=['Books','Authors'])
+#continent_gb=my_books.dropna(subset=['birthplace'])[[region,'birthplace','Book Id']].sort_values(by=[region,'Book Id'],ascending=[True,False])
+
+continent_count=country_count.groupby(region)['Book Id'].sum().reset_index().rename(columns={'Book Id':'Continent_count'})
+#
+continent_gb=country_count.merge(continent_count,how='left',on=region).sort_values(['Continent_count','Book Id'],ascending=[False,False])
 
 #%% 
 def change_width(ax, new_value) :
@@ -453,11 +472,11 @@ try:
     fig,ax=plt.subplots(2,3,figsize=(10,10))
     max_count=continent_gb['Book Id'].max()
     space=max_count*0.05
-    for cont,axis in zip(continent_gb['continent'].dropna().unique(),ax.flat):
+    for cont,axis in zip(continent_gb[region].dropna().unique(),ax.flat):
         axis.title.set_text(cont)
-        plot_data=continent_gb[continent_gb['continent']==cont]
+        plot_data=continent_gb[continent_gb[region]==cont]
         if len(plot_data)>0:
-            plot_data.replace({'United States of America':'USA','United Kingdom':'UK'},inplace=True)
+            plot_data.replace({'United States of America':'USA','United Kingdom':'UK','United Republic of Tanzania':'Tanzania'},inplace=True)
             sns.barplot(data=plot_data,y='birthplace',x='Book Id',ax=axis,palette='viridis')
             label_bars(axis, plot_data['Book Id'].to_list(), label_loc='outside',space=space,str_format='{:.0f}',orientation='h',fontweight='normal',fontcolor='#333333',fontsize=10)
             #change_width(axis, .8)
@@ -473,7 +492,7 @@ try:
     plt.savefig('books_read_by_authors_continent.png',dpi=300, bbox_inches = "tight")
     plt.show()
     #Show countries that weren't mapped
-    missing=continent_gb[continent_gb['continent'].isnull()]
+    missing=continent_gb[continent_gb[region].isnull()]
     if len(missing)>0:
         print('The following countries were not mapped: {}'.format(missing['birthplace'].unique()))
     else:
