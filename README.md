@@ -28,6 +28,8 @@ For authors that are missing author data (birhtplace, gender) you can edit the m
 |--books_analysis
    |--books_analysis.py
    |--author_data_all.csv
+   |--ne_110m_admin_0_countries
+   |--sovereign_states.csv
 |--my_data
    |--goodreads_library_export.csv
    
