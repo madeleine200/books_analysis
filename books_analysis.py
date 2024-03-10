@@ -359,8 +359,10 @@ except Exception as e:
 #%% COUNTRY DATA
 
 #new countries per year 
-###!!!!FIX DATETIME
-country_time=author_country_time(my_books.fillna(dt.datetime(2015,1,1)),time_group='Y')
+#get year before year added 
+earliest_data=my_books['Date Read'].min()
+yr_before=earliest_data-dt.timedelta(days=365)
+country_time=author_country_time(my_books.fillna(yr_before),time_group='Y')
 
 country_per_year=books_per_time(country_time.reset_index(),time_group='Y',count_var='birthplace')
 country_per_year=calc_cumul(country_per_year)
