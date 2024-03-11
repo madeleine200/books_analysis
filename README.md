@@ -66,6 +66,8 @@ conda install spyder
 ```
 ## Data Analysis 
 ### Missing Values 
+Where there are missing data for authors, you can add this data directly into the my_authors.csv file (it won't get written over if you re-run the analysis)
+
 Missing values are replaced in the following fields: <br>
 'Date Read' : missing values replaced with 'Date Added' <br>
 'Date Read' and 'Date Added' are missing, date is replaced with the year before the first year books were added <br>
