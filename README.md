@@ -21,7 +21,7 @@ Map showing the number of books read by authors from each country.  <br>
 
 
 ## Folder Structure 
-Set up your folder structure as below. Output goes into the my_data folder. <br>
+Download the files and set up your folder structure as below. Output goes into the my_data folder. <br>
 The goodreads_library_export.csv should be in the my_data folder. All outputs will be saved in this folder too. 
 For authors that are missing author data (birhtplace, gender) you can edit the my_authors.csv that is produced as output and add those fields manually. 
 ```
