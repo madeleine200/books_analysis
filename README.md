@@ -64,3 +64,14 @@ Try installing Spyder using:
 ```
 conda install spyder
 ```
+## Data Analysis 
+### Missing Values 
+Missing values are replaced in the following fields: <br>
+'Date Read' : missing values replaced with 'Date Added' <br>
+'Date Read' and 'Date Added' are missing, date is replaced with the year before the first year books were added <br>
+'Original Publication Year' : missing values replaced with 'Year Published' <br>
+
+### Author Countries 
+Author countries are mapped from the Natural Earth 1:100m data set (https://www.naturalearthdata.com/downloads/110m-cultural-vectors/) which maps 177 countries (countries that are too small for the resolution are not mapped). <br>
+The list of author countries (and the author countries by continent) use the sovereign states data (https://www.naturalearthdata.com/downloads/10m-cultural-vectors/) to group by continent/region
+
