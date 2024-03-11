@@ -21,17 +21,18 @@ Map showing the number of books read by authors from each country.  <br>
 
 
 ## Folder Structure 
-Download the files and set up your folder structure as below. Output goes into the my_data folder. <br>
+Download the files and set up your folder structure as below. The <parent_folder> can be named whatever you like as long as books_analysis and my_data are in the same folder. Output goes into the my_data folder. <br>
 The goodreads_library_export.csv should be in the my_data folder. All outputs will be saved in this folder too. 
-For authors that are missing author data (birhtplace, gender) you can edit the my_authors.csv that is produced as output and add those fields manually. 
+For authors that are missing author data (birthplace, gender) you can edit the my_authors.csv that is produced as output and add those fields manually. 
 ```
-|--books_analysis
-   |--books_analysis.py
-   |--author_data_all.csv
-   |--ne_110m_admin_0_countries
-   |--sovereign_states.csv
-|--my_data
-   |--goodreads_library_export.csv
+|--<parent_folder>
+   |--books_analysis
+      |--books_analysis.py
+      |--author_data_all.csv
+      |--ne_110m_admin_0_countries
+      |--sovereign_states.csv
+   |--my_data
+      |--goodreads_library_export.csv
    
 ```
 ## Set up: General 
@@ -66,6 +67,8 @@ conda install spyder
 ```
 ## Data Analysis 
 ### Missing Values 
+Where there are missing data for authors, you can add this data directly into the my_authors.csv file (it won't get written over if you re-run the analysis)
+
 Missing values are replaced in the following fields: <br>
 'Date Read' : missing values replaced with 'Date Added' <br>
 'Date Read' and 'Date Added' are missing, date is replaced with the year before the first year books were added <br>
