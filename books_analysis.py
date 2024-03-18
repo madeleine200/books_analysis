@@ -98,10 +98,19 @@ def check_my_authors(author_file='my_authors.csv'):
        
     return author_file_exist 
 
+def create_authorid(my_authors):
+    my_authors['AuthorID']=my_authors['author_name'].str.replace(' ', '')
+    return my_authors
+      
+
 def get_myauthors(author_file='my_authors.csv'):
     dateparse = lambda x: dt.datetime.strptime(x, '%Y/%m/%d') if type(x)!=float else np.nan
     my_authors=pd.read_csv(author_file)
-    
+    #check if AuthorID columns
+    if 'AuthorID' in my_authors.columns:
+        pass
+    else:
+       my_authors=create_authorid(my_authors) 
     return my_authors 
 
 def get_all_authors(file='\\'.join(os.getcwd().split('\\')[:-1])+'\\books_analysis\\author_data_all.csv'):
