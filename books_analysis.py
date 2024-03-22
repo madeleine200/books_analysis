@@ -4,8 +4,14 @@ Created on Sat Feb 24 15:43:16 2024
 
 @author: madeleine
 
-INSTRUCTIONS: 
-    
+PROCESS: 
+1. CHECK THAT MY_DATA DIRECTORY EXISTS
+2. IMPORT AND CLEAN GOODREADS DATA AS my_books
+3. IMPORT ALL AUTHOR DATA FROM DATABASE AS all_authors
+4. CHECK IF MY_AUTHOR DATA FILE EXISTS
+    if yes: import as my_authors
+    if no: create my_author data from my_books
+5. 
 
 """
 
@@ -78,6 +84,8 @@ def clean_book_data(my_books):
     my_books['Original Publication Year'].fillna(my_books['Year Published'],inplace=True)
     #fill in missing valuesfor 'Date Read' with 'Date Added'
     my_books['Date Read'].fillna(my_books['Date Added'],inplace=True)
+    #Create authorID column
+    my_books['AuthorID']=my_books['Author'].str.replace(' ', '')
     
     return my_books 
 
@@ -100,10 +108,27 @@ def check_my_authors(author_file='my_authors.csv'):
 
 def get_myauthors(author_file='my_authors.csv'):
     dateparse = lambda x: dt.datetime.strptime(x, '%Y/%m/%d') if type(x)!=float else np.nan
-    my_authors=pd.read_csv(author_file)
+    my_authors=pd.read_csv(author_file,na_values=['unknown','Unknown'])
     
-    return my_authors 
-
+    return my_authors
+ 
+def author_missing_data(my_authors):
+    """Checks for authors with missing data or duplicates"""
+    #find authors with missing data
+    missing=my_authors[(my_authors['birthplace'].isnull())|(my_authors['author_gender'].isnull())]
+    
+    #find authors with duplicates 
+    author_count=my_authors['AuthorID'].value_counts()
+    duplicate_matches=author_count[author_count>1].index
+    if len(duplicate_matches)>0:
+        print('!!! WARNING !!! The following authors have multiple matching entries. This will affect the analysis. Delete duplicate entry rows in my_authors.csv\n{}'.format('\n'.join(duplicate_matches.to_list())))
+    else: 
+        pass
+    if len(missing)>0:
+        print(f'There are {len(missing)} authors with missing data. This data can be added manually to the my_authors.csv')
+    else:
+        pass
+    
 def get_all_authors(file='\\'.join(os.getcwd().split('\\')[:-1])+'\\books_analysis\\author_data_all.csv'):
     """Imports full author dataset. 
     Args:
@@ -114,7 +139,7 @@ def get_all_authors(file='\\'.join(os.getcwd().split('\\')[:-1])+'\\books_analys
     
     Raises: Error if file not found. 
     """
-    all_authors=pd.read_csv(file).rename(columns={'author_name':'Author'})
+    all_authors=pd.read_csv(file,na_values=['unknown','Unknown']).rename(columns={'author_name':'Author'})
     all_authors['Author']=all_authors['Author'].str.strip('\n')
     return all_authors
 
@@ -126,8 +151,9 @@ def find_author(authors_ls,all_authors):
     Returns:
     author_details (dataframe): Dataframe containing details for authors in list. 
     """
-    author_details=all_authors[all_authors['Author'].isin(authors_ls)]
-    author_no_details=pd.DataFrame({'Author':[a for a in authors_ls if a not in author_details['Author'].to_list()]})
+    #Find where authorID in all_authors is in authors_ls
+    author_details=all_authors[all_authors['AuthorID'].isin(authors_ls)]
+    author_no_details=pd.DataFrame({'AuthorID':[a for a in authors_ls if a not in author_details['AuthorID'].to_list()]})
     return pd.concat([author_details,author_no_details],ignore_index=True)
     
     
@@ -143,8 +169,8 @@ def get_new_authors(my_books,my_authors):
     Print statement; [n] new authors found
      """
         
-    new_authors=my_books[~my_books['Author'].isin(my_authors['Author'])]
-    return new_authors['Author'].unique()
+    new_authors=my_books[~my_books['AuthorID'].isin(my_authors['AuthorID'])]
+    return new_authors['AuthorID'].unique()
 
 def import_country_data(directory='\\'.join(os.getcwd().split('\\')[:-1]),world_file='\\books_analysis\\ne_110m_admin_0_countries\\ne_110m_admin_0_countries.shp',cont_file="\\books_analysis\\sovereign_states.csv"):
     useful_cols=['SOVEREIGNT','ISO_A3','ADM0_A3','geometry']
@@ -173,25 +199,39 @@ else:
     pass 
 
 #%%
-#3. IMPORT MY AUTHORS DATA 
+#3. IMPORT ALL AUTHORS DATA 
 all_authors=get_all_authors()
 
-#%% 
+#%% CHECK IF AUTHOR DATA SET EXISTS, IF NOT, CREATE ONE
 if check_my_authors():
     #If my_authors.csv exists, import data
     my_authors=get_myauthors()
-    
+    #CHECK IF AuthorCountry column (for older versions), if not, create one
+    if 'AuthorCountry' in my_authors.columns:
+        pass
+    else:
+        #create Country columns
+        my_authors['AuthorCountry']=my_authors['birthplace']
+    #Check for missing data 
+    author_missing_data(my_authors)
 else: 
-    #If my_authors.csv doesn't exist, import all_authors data and find my_authors data
-    my_authors=pd.DataFrame(columns={'Author':my_books['Author'].to_list()})
-    authors_ls=my_books['Author'].to_list()
+    #CREATE MY_AUTHORS FILE 
+    #Get list of authors from my_books to make dataframe
+    authors_ls=my_books['AuthorID'].drop_duplicates().to_list()
+    my_authors=pd.DataFrame({'AuthorID':authors_ls})
     #Find my_author details in all _authors dataset
     my_authors=find_author(authors_ls,all_authors)
-    #add author where no details found 
-    
+    #add author Name where no details found 
+    author_id_dict=dict(map(lambda i,j : (i,j) , my_books['AuthorID'].drop_duplicates(),my_books['Author'].drop_duplicates()))
+    my_authors['Author'].fillna(my_authors['AuthorID'].map(author_id_dict),inplace=True)
+    #drop duplicates
+    my_authors.drop_duplicates(subset=['AuthorID','author_gender','birthplace'],inplace=True)
     #export my_authors dataframe to csv
+    author_missing_data(my_authors)
+    #create Country columns
+    my_authors['AuthorCountry']=my_authors['birthplace']
     #my_authors.rename(columns={'author_name':'Author'},inplace=True)
-    my_authors.to_csv('my_authors.csv',index=False)
+    my_authors[['Author','AuthorID','author_gender','birthplace','AuthorCountry']].sort_values(by='AuthorID').to_csv('my_authors.csv',index=False)
     #new_authors_ls=get_new_authors(my_books,my_authors)
 #new_authors_ls=get_new_authors(my_books,my_authors)
 #%%
@@ -199,23 +239,27 @@ else:
 #Find where there are new authors in my_books
 new_authors_ls=get_new_authors(my_books,my_authors)
 if len(new_authors_ls)>0:
+    print(f'{len(new_authors_ls)} new authors found. Searching for author details')
     #Search for author deatils in all_authors data
     new_author_df=find_author(new_authors_ls,all_authors)
     #Join onto my_authors data 
     my_authors=pd.concat([my_authors,new_author_df])
-        #Export updated my_authors data
-    
+    #Fix up data 
+    #add author Name where no details found 
+    author_id_dict=dict(map(lambda i,j : (i,j) , my_books['AuthorID'].drop_duplicates(),my_books['Author'].drop_duplicates()))
+    my_authors['Author'].fillna(my_authors['AuthorID'].map(author_id_dict),inplace=True)
+    #drop duplicates
+    my_authors.drop_duplicates(subset=['AuthorID','author_gender','birthplace'],inplace=True)
+    #export my_authors dataframe to csv
+    author_missing_data(my_authors)
+    #Fill in country with birthplace
+    my_authors['AuthorCountry'].fillna(my_authors['birthplace'],inplace=True)
+    #my_authors.rename(columns={'author_name':'Author'},inplace=True)
+    my_authors[['Author','AuthorID','author_gender','birthplace','AuthorCountry']].sort_values(by='AuthorID').to_csv('my_authors.csv',index=False)
 else: 
     pass
-my_authors.to_csv('my_authors.csv',index=False)
+#my_authors.to_csv('my_authors.csv',index=False)
 #4. PRINT ERRORS
-
-missing=my_authors[(my_authors['birthplace'].isnull())|(my_authors['author_gender'].isnull())]
-if len(missing)>0:
-    print('The following authors are missing data: {}'.format(missing['Author'].to_list()))
-else:
-    pass
-
 
 
 #------ANALYSIS FUNCTIONS-------
