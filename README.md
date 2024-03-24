@@ -19,6 +19,13 @@ Map showing the number of books read by authors from each country.  <br>
 ### Author Countries by Continent
 <img src="https://github.com/madeleine200/books_analysis/assets/38779248/c228d6d7-429d-48ef-9863-ff3f89b02533" width=40% height=40%>
 
+### Books by Author Gender 
+<img src="https://github.com/madeleine200/books_analysis/assets/38779248/e115d2fa-38ab-47df-bfc8-1a4a00861519" width=40% height=40%>
+
+### Books by decade published 
+
+<img src="https://github.com/madeleine200/books_analysis/assets/38779248/08c9826c-c20e-42f9-9736-453a70ac27ac" width=40% height=40%>
+
 
 ## Folder Structure 
 Download the files and set up your folder structure as below. The <parent_folder> can be named whatever you like as long as books_analysis and my_data are in the same folder. Output goes into the my_data folder. <br>
