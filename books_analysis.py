@@ -487,7 +487,7 @@ region='CONTINENT'
 
 
 my_books=join_states_data(my_books,sov_st)
-
+books_country_exp=my_books[['CONTINENT','AuthorCountry','Title','Author']].sort_values(by=['CONTINENT','AuthorCountry'])
 country_count=my_books[['Author','Book Id','birthplace',region]].groupby([region,'birthplace']).nunique().reset_index().sort_values(by='Author',ascending=False)
 #country_plot_mlt=pd.melt(country_plot.rename(columns={'Book Id':'Books','Author':'Authors'}),id_vars='birthplace', value_vars=['Books','Authors'])
 #continent_gb=my_books.dropna(subset=['birthplace'])[[region,'birthplace','Book Id']].sort_values(by=[region,'Book Id'],ascending=[True,False])
