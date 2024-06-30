@@ -509,19 +509,25 @@ def change_width(ax, new_value) :
         patch.set_y(patch.get_y() + diff * .5)
         
 #%% PLOT: BOOKS READ PER COUNTRY, GROUPED BY CONTINENT
+sov_states_count=sov_st.groupby('CONTINENT')['SOVEREIGNT'].count()
+
 try:
-    fig,ax=plt.subplots(2,3,figsize=(10,10))
+    fig,ax=plt.subplots(2,3,figsize=(12,10))
     max_count=continent_gb['Book Id'].max()
     space=max_count*0.05
     for cont,axis in zip(continent_gb[region].dropna().unique(),ax.flat):
-        axis.title.set_text(cont)
+        
         plot_data=continent_gb[continent_gb[region]==cont]
+        book_count=plot_data['Book Id'].sum()
+        book_cont_count=len(plot_data)
+        sov_st_count=sov_states_count[sov_states_count.index==cont][0]
+        axis.title.set_text(f'{cont} ({book_cont_count}/{sov_st_count})')
         if len(plot_data)>0:
             plot_data.replace({'United States of America':'USA','United Kingdom':'UK','United Republic of Tanzania':'Tanzania'},inplace=True)
             sns.barplot(data=plot_data,y='AuthorCountry',x='Book Id',ax=axis,palette='viridis')
             label_bars(axis, plot_data['Book Id'].to_list(), label_loc='outside',space=space,str_format='{:.0f}',orientation='h',fontweight='normal',fontcolor='#333333',fontsize=10)
             #change_width(axis, .8)
-            axis.set_xlabel('Books Read')
+            axis.set_xlabel(f'Books Read ({book_count})')
             
             axis.set_xticks([])
             axis.set_xlim([0,max_count+5])
