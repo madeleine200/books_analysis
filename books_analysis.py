@@ -78,7 +78,7 @@ def clean_book_data(my_books):
     my_books['Original Publication Year'].fillna(my_books['Year Published'],inplace=True)
     #fill in missing valuesfor 'Date Read' with 'Date Added'
     my_books['Date Read'].fillna(my_books['Date Added'],inplace=True)
-    
+    my_books['AuthorID']=my_books['Author'].str.replace(' ', '')
     return my_books 
 
 def check_my_authors(author_file='my_authors.csv'):
@@ -219,7 +219,7 @@ else:
 my_authors.to_csv('my_authors.csv',index=False)
 #4. PRINT ERRORS
 
-missing=my_authors[(my_authors['birthplace'].isnull())|(my_authors['author_gender'].isnull())]
+missing=my_authors[(my_authors['AuthorCountry'].isnull())|(my_authors['author_gender'].isnull())]
 if len(missing)>0:
     print('The following authors are missing data: {}'.format(missing['Author'].to_list()))
 else:
@@ -269,13 +269,13 @@ def author_country_time(my_books):
     Returns:
     country_time (dataframe): dtaframe grouped by country, taking the first date from each country group 
     """
-    country_time=my_books[['Author','Title','birthplace','Date Read']].sort_values('Date Read').groupby('birthplace').first()
+    country_time=my_books[['Author','Title','AuthorCountry','Date Read']].sort_values('Date Read').groupby('AuthorCountry').first()
     
     return country_time
 
 def calc_cumul(data):
     data=data.reset_index()
-    data['cumulative']=data['birthplace'].cumsum()
+    data['cumulative']=data['AuthorCountry'].cumsum()
     data['cumulative%']=(data['cumulative'].div(193).round(2))*100
     return data
 
@@ -355,7 +355,7 @@ def label_bars(ax, labels, label_loc='outside',space=0,str_format='{}',orientati
                 
    #%% JOIN AUTHOR DATA ONTO BOOKS 
 
-my_books=my_books.merge(my_authors,how='left',on='Author')
+my_books=my_books.drop(columns='Author').merge(my_authors,how='left',on='AuthorID')
 
 earliest_data=my_books['Date Read'].min()
 
@@ -393,7 +393,7 @@ except Exception as e:
 yr_before=earliest_data-dt.timedelta(days=365)
 country_time=author_country_time(my_books.fillna(yr_before))
 #counts books red per time (year)
-country_per_year=books_per_time(country_time.reset_index(),time_group='Y',count_var='birthplace')
+country_per_year=books_per_time(country_time.reset_index(),time_group='Y',count_var='AuthorCountry')
 #calculate cumulative authors
 country_per_year=calc_cumul(country_per_year)
 
@@ -405,8 +405,8 @@ try:
     sns.lineplot(data=country_per_year,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y='cumulative',marker='o')
     data_labels(ax,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y=country_per_year['cumulative'],labels=country_per_year['cumulative'],space=0.5)
     ax1=ax.twiny()
-    bar_chart_time(country_per_year,fig,ax1,x_var='Date Read',y_var='birthplace',date_label='%Y')
-    label_bars(ax1, country_per_year['birthplace'].to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
+    bar_chart_time(country_per_year,fig,ax1,x_var='Date Read',y_var='AuthorCountry',date_label='%Y')
+    label_bars(ax1, country_per_year['AuthorCountry'].to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
     ax1.set_xticklabels([])
     ax1.set_xticks([])
     ax1.set_xlabel(None)
@@ -436,7 +436,7 @@ def join_map_data(my_books,world_df):
     my_books (dataframe):dataframe of books read
     world_outline (dataframe):
     """
-    my_books=world_df.merge(my_books,how='outer',left_on='SOVEREIGNT',right_on='birthplace')
+    my_books=world_df.merge(my_books,how='outer',left_on='SOVEREIGNT',right_on='AuthorCountry')
     world_outline=my_books.copy()
     world_outline['Book Id'].fillna(0,inplace=True)
     #join on sov states
@@ -444,7 +444,7 @@ def join_map_data(my_books,world_df):
 
 def join_states_data(my_books,sov_states):
     #join sovereign states data onto books data 
-    my_books=my_books.merge(sov_st,left_on='birthplace',right_on='SOVEREIGNT',how='left')
+    my_books=my_books.merge(sov_st,left_on='AuthorCountry',right_on='SOVEREIGNT',how='left')
     return my_books
 
 
@@ -467,10 +467,10 @@ my_books=clean_country(my_books)
 
 
 #country_plot=clean_country(my_books)
-country_plot=my_books[['Author','Book Id','birthplace']].groupby('birthplace').nunique().reset_index().sort_values(by='Author',ascending=False)
-country_plot_mlt=pd.melt(country_plot.rename(columns={'Book Id':'Books','Author':'Authors'}),id_vars='birthplace', value_vars=['Books','Authors'])
+country_plot=my_books[['Author','Book Id','AuthorCountry']].groupby('AuthorCountry').nunique().reset_index().sort_values(by='Author',ascending=False)
+country_plot_mlt=pd.melt(country_plot.rename(columns={'Book Id':'Books','Author':'Authors'}),id_vars='AuthorCountry', value_vars=['Books','Authors'])
 world_data,sov_st=import_country_data()
-country_count,world_outline=join_map_data(country_plot[['birthplace','Book Id']],world_data)
+country_count,world_outline=join_map_data(country_plot[['AuthorCountry','Book Id']],world_data)
 #%% 
 try:
     fig,ax=plt.subplots(figsize=(10,10))
@@ -488,7 +488,7 @@ region='CONTINENT'
 
 my_books=join_states_data(my_books,sov_st)
 books_country_exp=my_books[['CONTINENT','AuthorCountry','Title','Author']].sort_values(by=['CONTINENT','AuthorCountry'])
-country_count=my_books[['Author','Book Id','birthplace',region]].groupby([region,'birthplace']).nunique().reset_index().sort_values(by='Author',ascending=False)
+country_count=my_books[['Author','Book Id','AuthorCountry',region]].groupby([region,'AuthorCountry']).nunique().reset_index().sort_values(by='Author',ascending=False)
 #country_plot_mlt=pd.melt(country_plot.rename(columns={'Book Id':'Books','Author':'Authors'}),id_vars='birthplace', value_vars=['Books','Authors'])
 #continent_gb=my_books.dropna(subset=['birthplace'])[[region,'birthplace','Book Id']].sort_values(by=[region,'Book Id'],ascending=[True,False])
 
@@ -518,14 +518,14 @@ try:
         plot_data=continent_gb[continent_gb[region]==cont]
         if len(plot_data)>0:
             plot_data.replace({'United States of America':'USA','United Kingdom':'UK','United Republic of Tanzania':'Tanzania'},inplace=True)
-            sns.barplot(data=plot_data,y='birthplace',x='Book Id',ax=axis,palette='viridis')
+            sns.barplot(data=plot_data,y='AuthorCountry',x='Book Id',ax=axis,palette='viridis')
             label_bars(axis, plot_data['Book Id'].to_list(), label_loc='outside',space=space,str_format='{:.0f}',orientation='h',fontweight='normal',fontcolor='#333333',fontsize=10)
             #change_width(axis, .8)
             axis.set_xlabel('Books Read')
             
             axis.set_xticks([])
             axis.set_xlim([0,max_count+5])
-            axis.set_ylim([14,-0.9])
+            axis.set_ylim([18,-0.9])
             axis.set_ylabel(None)
         else:
             pass
@@ -535,7 +535,7 @@ try:
     #Show countries that weren't mapped
     missing=continent_gb[continent_gb[region].isnull()]
     if len(missing)>0:
-        print('The following countries were not mapped: {}'.format(missing['birthplace'].unique()))
+        print('The following countries were not mapped: {}'.format(missing['AuthorCountry'].unique()))
     else:
         pass
 
