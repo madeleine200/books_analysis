@@ -216,6 +216,8 @@ if len(new_authors_ls)>0:
     
 else: 
     pass
+my_authors['birthplace'].fillna(my_authors['AuthorCountry'],inplace=True)
+
 my_authors.to_csv('my_authors.csv',index=False)
 #4. PRINT ERRORS
 
@@ -353,7 +355,7 @@ def label_bars(ax, labels, label_loc='outside',space=0,str_format='{}',orientati
                 ax.text(width+space,bar.get_y()+(height/2),str_format.format(label),ha='center',va=h_ref,fontsize=fontsize,fontweight=fontweight,color=fontcolor)
             
                 
-   #%% JOIN AUTHOR DATA ONTO BOOKS 
+ #%% JOIN AUTHOR DATA ONTO BOOKS 
 
 my_books=my_books.drop(columns='Author').merge(my_authors,how='left',on='AuthorID')
 
@@ -462,7 +464,7 @@ def show_countries(continent='all'):
         print(world_df)
     else:
         print(world_df[world_df['CONTINENT']==continent])
-#%% 
+#%% JOIN COUNTRY DATA
 my_books=clean_country(my_books)
 
 
