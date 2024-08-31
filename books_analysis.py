@@ -99,7 +99,7 @@ def check_my_authors(author_file='my_authors.csv'):
     return author_file_exist 
 
 def create_authorid(my_authors):
-    my_authors['AuthorID']=my_authors['author_name'].str.replace(' ', '')
+    
     return my_authors
       
 
@@ -107,10 +107,10 @@ def get_myauthors(author_file='my_authors.csv'):
     dateparse = lambda x: dt.datetime.strptime(x, '%Y/%m/%d') if type(x)!=float else np.nan
     my_authors=pd.read_csv(author_file)
     #check if AuthorID columns
-    if 'AuthorID' in my_authors.columns:
-        pass
-    else:
-       my_authors=create_authorid(my_authors) 
+    #if 'AuthorID' in my_authors.columns:
+    my_authors['AuthorID']=my_authors['Author'].str.replace(' ', '')
+    #drop duplicates 
+    my_authors.drop_duplicates(subset=['AuthorID','AuthorCountry','birthplace'],inplace=True)
     return my_authors 
 
 def get_all_authors(file='\\'.join(os.getcwd().split('\\')[:-1])+'\\books_analysis\\author_data_all.csv'):
@@ -135,8 +135,8 @@ def find_author(authors_ls,all_authors):
     Returns:
     author_details (dataframe): Dataframe containing details for authors in list. 
     """
-    author_details=all_authors[all_authors['Author'].isin(authors_ls)]
-    author_no_details=pd.DataFrame({'Author':[a for a in authors_ls if a not in author_details['Author'].to_list()]})
+    author_details=all_authors[all_authors['AuthorID'].isin(authors_ls)]
+    author_no_details=pd.DataFrame({'AuthorID':[a for a in authors_ls if a not in author_details['AuthorID'].to_list()]})
     return pd.concat([author_details,author_no_details],ignore_index=True)
     
     
@@ -152,8 +152,8 @@ def get_new_authors(my_books,my_authors):
     Print statement; [n] new authors found
      """
         
-    new_authors=my_books[~my_books['Author'].isin(my_authors['Author'])]
-    return new_authors['Author'].unique()
+    new_authors=my_books[~my_books['AuthorID'].isin(my_authors['AuthorID'])]
+    return new_authors['AuthorID'].unique()
 
 def import_country_data(directory='\\'.join(os.getcwd().split('\\')[:-1]),world_file='\\books_analysis\\ne_110m_admin_0_countries\\ne_110m_admin_0_countries.shp',cont_file="\\books_analysis\\sovereign_states.csv"):
     useful_cols=['SOVEREIGNT','ISO_A3','ADM0_A3','geometry']
@@ -216,7 +216,7 @@ if len(new_authors_ls)>0:
     
 else: 
     pass
-my_authors['birthplace'].fillna(my_authors['AuthorCountry'],inplace=True)
+my_authors['AuthorCountry'].fillna(my_authors['birthplace'],inplace=True)
 
 my_authors.to_csv('my_authors.csv',index=False)
 #4. PRINT ERRORS
@@ -466,13 +466,20 @@ def show_countries(continent='all'):
         print(world_df[world_df['CONTINENT']==continent])
 #%% JOIN COUNTRY DATA
 my_books=clean_country(my_books)
-
+#export my books to csv 
+my_books.to_csv('my_books_data_all.csv',index=False)
 
 #country_plot=clean_country(my_books)
 country_plot=my_books[['Author','Book Id','AuthorCountry']].groupby('AuthorCountry').nunique().reset_index().sort_values(by='Author',ascending=False)
 country_plot_mlt=pd.melt(country_plot.rename(columns={'Book Id':'Books','Author':'Authors'}),id_vars='AuthorCountry', value_vars=['Books','Authors'])
 world_data,sov_st=import_country_data()
 country_count,world_outline=join_map_data(country_plot[['AuthorCountry','Book Id']],world_data)
+
+#%% OUTPUT COUNTRIES (SOVEREIGN STATES) TO READ 
+#join continent data
+sov_st_to_read=sov_st[~sov_st['SOVEREIGNT'].isin(my_books['AuthorCountry'].to_list())]
+sov_st_to_read.to_csv('Countries_to_read.csv',index=False)
+
 #%% 
 try:
     fig,ax=plt.subplots(figsize=(10,10))
@@ -582,8 +589,17 @@ try:
     gender_plot_all=gender_plot1[['Author','Book Id','author_gender']].groupby('author_gender').nunique().reset_index().rename(columns={'Book Id':'Books','Author':'Authors'}).sort_values(by='Authors',ascending=False)
     gender_plot_all['percentage']=(gender_plot_all['Books']/gender_plot_all['Books'].sum())*100
     
-    ax[1].pie(gender_plot_all['Books'],labels=['{} ({:.0f}%)'.format(i,j) for i,j in zip(gender_plot_all['author_gender'],gender_plot_all['percentage'])],colors=[ax[0].patches[0].get_facecolor(),ax[0].patches[-1].get_facecolor()])
-    ax[1].title.set_text('Overall')
+    pie=ax[1].pie(gender_plot_all['Books'],labels=['{:.0f}%'.format(i) for i in gender_plot_all['percentage']],
+                  colors=[ax[0].patches[0].get_facecolor(),ax[0].patches[-1].get_facecolor()], labeldistance=0.5,textprops={'color':"w",
+                                                                                                                            'fontweight':'bold',
+                                                                                                                            'fontsize':12})
+    
+    labels=['{}: {} books ({:.0f}%)'.format(i,j,k) for i,j,k in zip(gender_plot_all['author_gender'],
+                                                                  gender_plot_all['Books'],gender_plot_all['percentage'])]
+    ax[1].legend(pie[0],labels, bbox_to_anchor=(0.8,0.8), loc='upper center', fontsize=12, 
+           bbox_transform=plt.gcf().transFigure)
+    
+    #ax[1].title.set_text('Overall')
 
     plt.savefig('author_gender.png',dpi=300, bbox_inches = "tight")
     plt.show()
