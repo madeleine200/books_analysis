@@ -77,6 +77,9 @@ def clean_book_data(my_books):
     #Fill in missing values for 'Original Publication Year' with values from 'Year Published'
     my_books['Original Publication Year'].fillna(my_books['Year Published'],inplace=True)
     #fill in missing valuesfor 'Date Read' with 'Date Added'
+    #replace missing date read values with earliest dates
+    earliest_data=my_books['Date Read'].min()
+    #my_books['Date Read'].fillna(earliest_data,inplace=True)
     my_books['Date Read'].fillna(my_books['Date Added'],inplace=True)
     my_books['AuthorID']=my_books['Author'].str.replace(' ', '')
     return my_books 
@@ -191,16 +194,19 @@ if check_my_authors():
     my_authors=get_myauthors()
     
 else: 
-    #If my_authors.csv doesn't exist, import all_authors data and find my_authors data
-    my_authors=pd.DataFrame(columns={'Author':my_books['Author'].to_list()})
-    authors_ls=my_books['Author'].to_list()
+    
+    #If my_authors.csv doesn't exist, import all_authors data and find my_authors data\\
+    my_authors=my_books[["Author","AuthorID"]].drop_duplicates()
+    #my_authors[['birthplace','author_gender','AuthorCountry','author_id']]=np.nan
+    #my_authors=pd.DataFrame(columns={'Author':my_books['Author'].drop_duplicates()})
+    authors_ls=my_authors['AuthorID'].to_list()
     #Find my_author details in all _authors dataset
     my_authors=find_author(authors_ls,all_authors)
     #add author where no details found 
-    
+    my_authors['AuthorCountry']=my_authors['birthplace']
     #export my_authors dataframe to csv
     #my_authors.rename(columns={'author_name':'Author'},inplace=True)
-    my_authors.to_csv('my_authors.csv',index=False)
+    
     #new_authors_ls=get_new_authors(my_books,my_authors)
 #new_authors_ls=get_new_authors(my_books,my_authors)
 #%%
@@ -208,22 +214,26 @@ else:
 #Find where there are new authors in my_books
 new_authors_ls=get_new_authors(my_books,my_authors)
 if len(new_authors_ls)>0:
+    print("getting new author details")
     #Search for author deatils in all_authors data
     new_author_df=find_author(new_authors_ls,all_authors)
     #Join onto my_authors data 
-    my_authors=pd.concat([my_authors,new_author_df])
+    existing_author_list=my_authors[~my_authors['AuthorID'].isin(new_authors_ls)]
+    my_authors=pd.concat([existing_author_list,new_author_df])
         #Export updated my_authors data
-    
-else: 
+    my_authors['AuthorCountry'].fillna(my_authors['birthplace'],inplace=True)
+    #my_authors.to_csv('my_authors.csv',index=False)
+else:
+    print("no new authors")
     pass
-my_authors['AuthorCountry'].fillna(my_authors['birthplace'],inplace=True)
 
+print("exporting authors file")
 my_authors.to_csv('my_authors.csv',index=False)
 #4. PRINT ERRORS
 
 missing=my_authors[(my_authors['AuthorCountry'].isnull())|(my_authors['author_gender'].isnull())]
 if len(missing)>0:
-    print('The following authors are missing data: {}'.format(missing['Author'].to_list()))
+    print('The following authors are missing data: {}'.format(missing['AuthorID'].to_list()))
 else:
     pass
 
@@ -247,7 +257,7 @@ def time_period(my_books,st_date,end_date=None):
         end_date_dt=dt.datetime.strptime(end_date,'%d/%m/%Y')
     else: 
         end_date_dt=dt.datetime.now()
-    my_books_time=my_books[(my_books['Date Added']>=st_date_dt)&(my_books['Date Added']<=end_date_dt)]
+    my_books_time=my_books[(my_books['Date Read']>=st_date_dt)&(my_books['Date Read']<=end_date_dt)]
     return my_books_time
 
 def books_per_time(my_books,time_group='M',count_var='Book Id'):
@@ -332,7 +342,7 @@ def truncate_cmap(cmap,minval=0,maxval=1,n=100):
         'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name,a=minval,b=maxval),cmap(np.linspace(minval,maxval,n)))
     return new_cmap
 
-def data_labels(ax,x,y,labels,space):
+def data_labels(ax,x,y,labels,space,fontweight='normal',fontcolor='#333333',fontsize=10):
     for x,y,lab in zip(x,y,labels):                                       # <--
         ax.annotate(f'{lab}', xy=(x,y+space), textcoords='data')
     
@@ -365,20 +375,32 @@ earliest_data=my_books['Date Read'].min()
 try:
     my_book_year=time_period(my_books,st_date=dt.datetime.strftime(earliest_data,'%d/%m/%Y'))
     books_per_year=books_per_time(my_book_year,'Y')
+    yr_av=books_per_year.mean()
     fig,ax=plt.subplots()
-    bar_chart_time(books_per_year,fig,ax,x_var='Date Read',y_var='Book Id',date_label='%Y')
+    bar_chart_time(books_per_year,fig,ax,x_var='Date Read',y_var='Book Id',date_label='%y')
     label_bars(ax, books_per_year.to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
+    ax.axhline(yr_av,zorder=0)
     plt.savefig('books_per_year.png',dpi=300, bbox_inches = "tight")
 except Exception as e:
        # Print Error Message
         print("ERROR plotting decade published data. The error is: ",e)
 
 #%% THIS YEAR SUMMARY 
+current_year=dt.datetime.now().year
 try:
-    my_book_year=time_period(my_books,st_date='01/01/2024')
+    my_book_year=time_period(my_books,st_date='01/01/2025')
+    prev_years=my_books[(my_books['Date Read']<dt.datetime(2025,1,1))&(my_books['Date Read']>dt.datetime(2020,1,1))]
+    #get average books per month for previous years 
+    av_books_monthly=books_per_time(prev_years,'M')
+    av_books_monthly=av_books_monthly.reset_index()
+    av_books_monthly['month']=av_books_monthly['Date Read'].dt.month
+    av_books_monthly=av_books_monthly.groupby(['month']).mean()
+    av_books_monthly['month']=av_books_monthly['Date Read'].dt.strftime('%b')
+    
     if len(my_book_year)>0:
         books_per_month=books_per_time(my_book_year,'M')
         fig,ax=plt.subplots()
+        sns.lineplot(data=av_books_monthly,x='month',y='Book Id',marker='o')
         bar_chart_time(books_per_month,fig,ax,x_var='Date Read',y_var='Book Id',date_label='%b')
         label_bars(ax, books_per_month.to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
         plt.savefig('books_per_month.png',dpi=300, bbox_inches = "tight")
@@ -401,13 +423,14 @@ country_per_year=calc_cumul(country_per_year)
 
 #books_per_time=author_country_time.reset_index()['birthplace'].groupby(pd.Grouper(freq='Y')).nunique()
 #%% PLOT: CUMULATIVE AUTHORS PER YEAR 
+"""
 try:
     fig,ax=plt.subplots()
     #country_per_year['Date Read']=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y'))
-    sns.lineplot(data=country_per_year,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y='cumulative',marker='o')
-    data_labels(ax,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%Y')),y=country_per_year['cumulative'],labels=country_per_year['cumulative'],space=0.5)
+    sns.lineplot(data=country_per_year,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%y')),y='cumulative',marker='o')
+    data_labels(ax,x=country_per_year['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%y')),y=country_per_year['cumulative'],labels=country_per_year['cumulative'],space=0.5)
     ax1=ax.twiny()
-    bar_chart_time(country_per_year,fig,ax1,x_var='Date Read',y_var='AuthorCountry',date_label='%Y')
+    bar_chart_time(country_per_year,fig,ax1,x_var='Date Read',y_var='AuthorCountry',date_label='%y')
     label_bars(ax1, country_per_year['AuthorCountry'].to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
     ax1.set_xticklabels([])
     ax1.set_xticks([])
@@ -418,6 +441,19 @@ try:
 except Exception as e:
        # Print Error Message
         print("ERROR plotting author countries by year. The error is: ",e)
+"""
+        
+#%% CUMULATIVE AUTHORS 
+
+fig,ax=plt.subplots()
+country_per_year_plt=country_per_year.copy()
+country_per_year_plt['Date Read']=country_per_year_plt['Date Read'].apply(lambda x: dt.datetime.strftime(x,'%y'))
+sns.barplot(data=country_per_year_plt,x='Date Read',y='cumulative',palette='viridis')
+sns.lineplot(data=country_per_year_plt,x='Date Read',y='AuthorCountry',marker='o')
+label_bars(ax, country_per_year_plt['cumulative'].to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
+label_bars(ax, country_per_year_plt['cumulative%'].to_list(), label_loc='outside',space=-6,str_format='{:.0f}\n%',orientation='v',fontweight='bold',fontcolor='w',fontsize=7)
+data_labels(ax,x=country_per_year_plt['Date Read'],y=country_per_year_plt['AuthorCountry'],labels=country_per_year_plt['AuthorCountry'],space=0,fontweight='bold',fontcolor='w')
+plt.savefig('author_countries_per_year1.png',dpi=300, bbox_inches = "tight")
 
 #%%% MAP OF AUTHORS 
 
@@ -521,13 +557,19 @@ def change_width(ax, new_value) :
 sov_states_count=sov_st.groupby('CONTINENT')['SOVEREIGNT'].count()
 
 try:
-    fig,ax=plt.subplots(2,3,figsize=(12,10))
+    
+    fig,ax=plt.subplots(2,3,figsize=(12,12))
+    
     max_count=continent_gb['Book Id'].max()
     space=max_count*0.05
+    continent_gb.sort_values('CONTINENT',inplace=True)
     for cont,axis in zip(continent_gb[region].dropna().unique(),ax.flat):
+        #axis.set_facecolor('w')
         
         plot_data=continent_gb[continent_gb[region]==cont]
+        plot_data.sort_values('Book Id',ascending=False,inplace=True)
         book_count=plot_data['Book Id'].sum()
+        
         book_cont_count=len(plot_data)
         sov_st_count=sov_states_count[sov_states_count.index==cont][0]
         axis.title.set_text(f'{cont} ({book_cont_count}/{sov_st_count})')
@@ -539,8 +581,8 @@ try:
             axis.set_xlabel(f'Books Read ({book_count})')
             
             axis.set_xticks([])
-            axis.set_xlim([0,max_count+5])
-            axis.set_ylim([18,-0.9])
+            axis.set_xlim([0,max_count+10])
+            axis.set_ylim([22,-0.9])
             axis.set_ylabel(None)
         else:
             pass
@@ -606,7 +648,76 @@ try:
 except Exception as e:
        # Print Error Message
         print("ERROR plotting author gender data. The error is: ",e)
+ 
         
+ 
+#%% EOY WRAP
+
+this_year=my_books[my_books['Date Read']>dt.datetime(current_year,1,1)]
+prev_years=my_books[my_books['Date Read']<dt.datetime(current_year,1,1)]
+
+#CURRENT YEAR 
+total_books=len(this_year)
+unq_authors=len(this_year['AuthorID'].unique())
+
+countries_count_yr=this_year['SOVEREIGNT'].value_counts()
+gender_count_yr=this_year['author_gender'].value_counts()
+
+new_authors=this_year[~this_year['AuthorID'].isin(prev_years['AuthorID'])]
+pub_plot_yr=this_year[['decadePublished','Book Id']].groupby('decadePublished').nunique().reset_index()
+
+#PREVIOUS YEARS 
+#average books per year
+total_av_prev=int(round(books_per_time(prev_years,time_group='Y',count_var='Book Id').mean(),0))
+
+
+countries_count_prev=prev_years['SOVEREIGNT'].value_counts()
+
+##average unique countries per year 
+unq_cntry_yr=prev_years[['SOVEREIGNT','Date Read']].set_index('Date Read').groupby(pd.Grouper(freq='y')).nunique()
+unq_cntry_yr.reset_index(inplace=True)
+unq_cntry_yr.sort_values('SOVEREIGNT',ascending=False,inplace=True)
+unq_cntry_yr['Date Read']=unq_cntry_yr['Date Read'].dt.strftime('%Y')
+
+#%% YEAR SUMMARY IMAGE
+
+fig,ax=plt.subplots(2,3,figsize=(12,10))
+
+
+#FIG1
+ax[0][0].title.set_text('Total Books {} Unique Countries {}'.format(total_books,len(countries_count_yr)))
+sns.barplot(data=countries_count_yr.reset_index(),y='SOVEREIGNT',x='count',ax=ax[0][0],palette='viridis')
+ax[0][0].set_xlabel('Number of Books')
+
+#FIG2
+
+gender_plot_yr=this_year[['Author','Book Id','author_gender']].groupby('author_gender').nunique().reset_index().rename(columns={'Book Id':'Books','Author':'Authors'}).sort_values(by='Authors',ascending=False)
+gender_plot_yr['percentage']=(gender_plot_yr['Books']/gender_plot_yr['Books'].sum())*100
+ 
+pie=ax[0][1].pie(gender_plot_yr['Books'],labels=['{:.0f}%'.format(i) for i in gender_plot_yr['percentage']],labeldistance=0.5,textprops={'color':"w",
+                                                                                                                         'fontweight':'bold',
+                                                                                                                         'fontsize':12})
+ 
+labels=['{}: {} books ({:.0f}%)'.format(i,j,k) for i,j,k in zip(gender_plot_yr['author_gender'],
+                                                               gender_plot_yr['Books'],gender_plot_yr['percentage'])]
+ax[0][1].legend(pie[0],labels, bbox_to_anchor=(0.5,0.9), loc='upper center', fontsize=12, 
+        bbox_transform=plt.gcf().transFigure)
+
+
+#FIG 3
+
+sns.barplot(data=pub_plot_yr,x='decadePublished',y='Book Id',palette='viridis',ax=ax[0][2])
+
+#FIG 4
+sns.barplot(data=unq_cntry_yr,y='Date Read',x='SOVEREIGNT',ax=ax[1][0],palette='viridis')
+ax[1][0].set_xlabel('Unique Countries')
+ax[1][0].tick_params(axis='x', labelrotation=45)
+
+
+
+plt.savefig('year_wrap.png',dpi=300, bbox_inches = "tight")
+plt.show()
+    
 #%%
 '''
 sns.set_theme(style='white')
