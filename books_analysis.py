@@ -395,7 +395,7 @@ except Exception as e:
 #%% THIS YEAR SUMMARY 
 current_year=dt.datetime.now().year
 try:
-    my_book_year=time_period(my_books,st_date='01/01/2025')
+    my_book_year=time_period(my_books,st_date='01/01/2026')
     prev_years=my_books[(my_books['Date Read']<dt.datetime(2025,1,1))&(my_books['Date Read']>dt.datetime(2020,1,1))]
     #get average books per month for previous years 
     av_books_monthly=books_per_time(prev_years,'M')
@@ -565,7 +565,7 @@ sov_states_count=sov_st.groupby('CONTINENT')['SOVEREIGNT'].count()
 
 try:
     
-    fig,ax=plt.subplots(2,3,figsize=(12,12))
+    fig,ax=plt.subplots(2,3,figsize=(13,13))
     
     max_count=continent_gb['Book Id'].max()
     space=max_count*0.05
@@ -574,7 +574,7 @@ try:
         #axis.set_facecolor('w')
         
         plot_data=continent_gb[continent_gb[region]==cont]
-        plot_data.sort_values('Book Id',ascending=False,inplace=True)
+        plot_data.sort_values(['Book Id','AuthorCountry'],ascending=[False,True],inplace=True)
         book_count=plot_data['Book Id'].sum()
         
         book_cont_count=len(plot_data)
@@ -588,8 +588,9 @@ try:
             axis.set_xlabel(f'Books Read ({book_count})')
             
             axis.set_xticks([])
-            axis.set_xlim([0,max_count+10])
-            axis.set_ylim([22,-0.9])
+            axis.set_xlim([0,max_count+15])
+            
+            axis.set_ylim([23,-0.9])
             axis.set_ylabel(None)
         else:
             pass
@@ -626,16 +627,22 @@ except Exception as e:
 
 try: 
     
+    #set colours 
+    #get unique genders
+    gender_plot=my_books[['Author','Book Id','Date Read','author_gender']].fillna({'author_gender':'unknown'}).set_index('Date Read').groupby([pd.Grouper(freq='Y'),'author_gender']).count().reset_index().sort_values(by='Author',ascending=False)
+    num_cols=len(gender_plot['author_gender'].unique())
+    grad_rg=np.linspace(0,1,num_cols,endpoint=True)
     
-    
-    
+       
+       
     fig,ax = plt.subplots(2,2,width_ratios=[3, 1],figsize=(12,6))
-    gender_plot1=my_books[(my_books['author_gender']=='male')|(my_books['author_gender']=='female')|(my_books['author_gender']=='other')]
-    gender_plot=gender_plot1[['Author','Book Id','Date Read','author_gender']].set_index('Date Read').groupby([pd.Grouper(freq='Y'),'author_gender']).count().reset_index().sort_values(by='Author',ascending=False)
+    #gender_plot1=my_books[(my_books['author_gender']=='male')|(my_books['author_gender']=='female')|(my_books['author_gender']=='other')]
+    #gender_plot=my_books[['Author','Book Id','Date Read','author_gender']].fillna({'author_gender':'unknown'}).set_index('Date Read').groupby([pd.Grouper(freq='Y'),'author_gender']).count().reset_index().sort_values(by='Author',ascending=False)
     gender_plot2=pd.melt(gender_plot.rename(columns={'Book Id':'Books','Author':'Authors'}),id_vars=['Date Read','author_gender'], value_vars=['Books']).sort_values('Date Read')
     
        
-    sns.barplot(data=gender_plot2,y='value',x='Date Read',hue='author_gender',palette='viridis',ax=ax[0][0])
+    #BARPLOT BY YEAR 
+    sns.barplot(data=gender_plot.sort_values('Date Read'),y='Book Id',x='Date Read',hue='author_gender',palette='viridis',ax=ax[0][0])
     
    
     
@@ -643,20 +650,29 @@ try:
     ax[0][0].set_xticklabels([dt.datetime.strftime(i,'%Y') for i in gender_plot2['Date Read'].drop_duplicates().to_list()])
     axis.set_ylabel('Books Read')
     #ax[0].title.set_text('By Year')
-    gender_plot_all=gender_plot1[['Author','Book Id','author_gender']].groupby('author_gender').nunique().reset_index().rename(columns={'Book Id':'Books','Author':'Authors'}).sort_values(by='Authors',ascending=False)
+    gender_plot_all=gender_plot[['Author','Book Id','author_gender']].groupby('author_gender').sum().reset_index().rename(columns={'Book Id':'Books','Author':'Authors'}).sort_values(by='Authors',ascending=False)
     gender_plot_all['percentage']=(gender_plot_all['Books']/gender_plot_all['Books'].sum())*100
     
     
     #get % male authors 
     
     gender_perc=gender_plot2.pivot(index='Date Read', columns='author_gender', values='value').fillna(0).reset_index()
-    gender_perc['%Male']=gender_perc['male']/(gender_perc['female']+gender_perc['male'])
+    gender_perc2=gender_plot2.set_index('Date Read').groupby(pd.Grouper(freq='Y'))['value'].sum().reset_index()
+    gender_perc=gender_perc.merge(gender_perc2,how='left',on='Date Read')
+    gender_perc['%Male']=gender_perc['male']/(gender_perc['value'])
+
+        
+        
     
+
     sns.lineplot(data=gender_perc,x='Date Read',y='%Male',marker='o',ax=ax[1][0])
     data_labels(ax[1][0],x=gender_perc['Date Read'],y=gender_perc['%Male'],labels=['{:.0f}%'.format(i*100) for i in gender_perc['%Male']],space=0.05,fontweight='bold',fontcolor='w')
     ###
     clr_male=ax[0][0].patches[-1].get_facecolor()
     clr_female=ax[0][0].patches[0].get_facecolor()
+    
+    
+    # pie chart
     pie=ax[0][1].pie(gender_plot_all['Books'],labels=['{:.0f}%'.format(i) for i in gender_plot_all['percentage']],
                   colors=[clr_male,clr_female], labeldistance=0.5,textprops={'color':"w",                                                                                                         'fontweight':'bold',
                                                                             'fontsize':12})
@@ -681,7 +697,7 @@ except Exception as e:
  
 #%% EOY WRAP
 
-this_year=my_books[(my_books['Date Read']>dt.datetime(2025,1,1))&(my_books['Date Read']<dt.datetime(2026,1,1))]
+this_year=my_books[(my_books['Date Read']>dt.datetime(2026,1,1))&(my_books['Date Read']<dt.datetime(2027,1,1))]
 #my_books[my_books['Date Read']>dt.datetime(current_year,1,1)]
 prev_years=my_books[my_books['Date Read']<dt.datetime(current_year,1,1)]
 
@@ -770,24 +786,47 @@ plt.show()
    
 #%% NUMBER OF PAGES
 
-cmap=matplotlib.colormaps['viridis']
-
-pages=np.array(my_books['Number of Pages'].dropna())
-pages_yr=np.array(this_year['Number of Pages'].dropna())
+pages_mean=np.mean(pages)
+pages_min=np.min(pages)
+pages_max=np.max(pages)
 fig,ax=plt.subplots()
 ax.yaxis.set_visible(False)
 #sns.distplot(pages_yr)
 plt.hist(pages, bins=50, color=cmap(0.7), edgecolor='black', density=True, alpha=0.6)
 sns.kdeplot(pages,color='green')
-sns.kdeplot(pages_yr,color=cmap(0.1)) 
+
 ax.set_xlabel('Book Length (pg)')
 #Set up legend
 green_patch = mpatches.Patch(color=cmap(0.7), label='All Time')
 green_line=Line2D([0], [0], color='green', linewidth=2, label='All Time')
-prp_line=Line2D([0], [0], color=cmap(0.1), linewidth=2, label='Current Year')
-ax.legend(handles=[green_patch, green_line, prp_line], loc='upper right')
+
+ax.text(0.95, 0.95, f'Median = {pages_med:.0f}\nMean = {pages_mean:.0f}\nMin = {pages_min:.0f}\nMax = {pages_max:.0f}',
+        horizontalalignment='right',
+        verticalalignment='top',
+        transform=ax.transAxes, # Use axes coordinates
+        bbox=dict(facecolor='white', alpha=0.8, boxstyle='round'))
+
+
+#ax.legend(handles=[green_patch, green_line], loc='upper right')
+plt.savefig('book_length.png',dpi=300, bbox_inches = "tight")
 plt.show()
 
+#%% TOP AUTHOR BY BOOKS READ
+
+count_by_author=my_books[['Book Id','Author']].groupby('Author').count().sort_values('Book Id',ascending=False)
+
+#Get top 10 
+top_cutoff=count_by_author.iat[9,0]
+
+top_authors=count_by_author[count_by_author['Book Id']>=top_cutoff].reset_index()
+
+
+#GRAPH 
+fig,ax=plt.subplots()
+sns.barplot(data=top_authors,y='Author',x='Book Id',palette='viridis')
+ax.set_xlabel('Books Read')
+plt.savefig('top_authors.png',dpi=300, bbox_inches = "tight")
+plt.show()
 
 #%%
 '''
