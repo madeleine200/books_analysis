@@ -63,7 +63,7 @@ def get_goodreads_csv(filename='goodreads_library_export.csv',shelf='Read'):
     my_books (dataframe): Dataframe containing books read 
     """
     my_books=pd.read_csv(filename,dtype={'Book Id':str},usecols=['Book Id', 'Title', 'Author',
-            'Number of Pages', 'Year Published', 'Original Publication Year','Date Added','Date Read','Exclusive Shelf','Read Count'])
+            'Number of Pages', 'Year Published', 'Original Publication Year','Date Added','Date Read','Exclusive Shelf','Read Count','My Rating'])
     my_books['Date Added']=pd.to_datetime(my_books['Date Added'])
     my_books['Date Read']=pd.to_datetime(my_books['Date Read'])
     my_books=my_books[my_books['Exclusive Shelf']=='read']
@@ -387,6 +387,9 @@ try:
     bar_chart_time(books_per_year,fig,ax,x_var='Date Read',y_var='Book Id',date_label='%y')
     label_bars(ax, books_per_year.to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
     ax.axhline(yr_av,zorder=0)
+    #Set up legend
+    prp_line=Line2D([0], [0],  color='steelblue', linewidth=2, label='Average')
+    ax.legend(handles=[prp_line], loc='upper left')
     plt.savefig('books_per_year.png',dpi=300, bbox_inches = "tight")
 except Exception as e:
        # Print Error Message
@@ -408,8 +411,12 @@ try:
         books_per_month=books_per_time(my_book_year,'M')
         fig,ax=plt.subplots()
         sns.lineplot(data=av_books_monthly,x='month',y='Book Id',marker='o')
+        
         bar_chart_time(books_per_month,fig,ax,x_var='Date Read',y_var='Book Id',date_label='%b')
         label_bars(ax, books_per_month.to_list(), label_loc='outside',space=0,str_format='{}',orientation='v',fontweight='bold',fontcolor='#333333',fontsize=10)
+        #Set up legend
+        prp_line=Line2D([0], [0], marker='o',markeredgecolor='w', color='steelblue', linewidth=2, label='Average (all time)')
+        ax.legend(handles=[prp_line], loc='upper right')
         plt.savefig('books_per_month.png',dpi=300, bbox_inches = "tight")
     else:
         print("WARNING: no data for time period")
@@ -494,9 +501,11 @@ def join_states_data(my_books,sov_states):
 
 
 def plot_map(fig,ax,country_count,world_outline,count_var='Book Id'):
-    new_cmap=truncate_cmap(plt.get_cmap('Blues'),0.4,1.0,n=10)
+    new_cmap=truncate_cmap(plt.get_cmap('viridis'),0.25,1.0,n=10)
+    #new_cmap=truncate_cmap(plt.get_cmap('Blues'),0.4,1.0,n=10)
     world_outline.plot(column=count_var,ax=ax,edgecolor='grey',linewidth=0.3,cmap='Greys')
     country_count.plot(column=count_var,cmap=new_cmap,edgecolor='grey',linewidth=0.3,ax=ax,legend=True,legend_kwds={"shrink":.3})
+    
     ax.set_ylim([-60,90])
     ax.set_xlim([-182,182])
     ax.set_axis_off()
@@ -729,12 +738,12 @@ cmap=matplotlib.colormaps['viridis']
 fig,ax=plt.subplots(2,3,figsize=(12,10))
 
 
-#FIG1
+#FIG1: BOOKS PER COUNTRY 
 ax[0][0].title.set_text('Total Books {} Unique Countries {}'.format(total_books,len(countries_count_yr)))
 sns.barplot(data=countries_count_yr.reset_index(),y='SOVEREIGNT',x='count',ax=ax[0][0],palette='viridis')
 ax[0][0].set_xlabel('Number of Books')
 
-#FIG2
+#FIG2 GENDER PIE CHART
 
 gender_plot_yr=this_year[['Author','Book Id','author_gender']].groupby('author_gender').nunique().reset_index().rename(columns={'Book Id':'Books','Author':'Authors'}).sort_values(by='Authors',ascending=False)
 gender_plot_yr['percentage']=(gender_plot_yr['Books']/gender_plot_yr['Books'].sum())*100
@@ -749,15 +758,15 @@ ax[0][1].legend(pie[0],labels, bbox_to_anchor=(0.5,0.9), loc='upper center', fon
         bbox_transform=plt.gcf().transFigure)
 
 
-#FIG 3
+#FIG 3 YEAR PUBLISHED
 
 sns.barplot(data=pub_plot_yr,x='decadePublished',y='Book Id',palette='viridis',ax=ax[0][2])
 ax[0][2].tick_params(axis='x', labelrotation=45)
-#FIG 4
+#FIG 4 YEARS SORTED BY UNIQUE COUNTRIES READ
 sns.barplot(data=unq_cntry_yr,y='Date Read',x='SOVEREIGNT',ax=ax[1][0],palette='viridis')
 ax[1][0].set_xlabel('Unique Countries')
 
-# FIG 5 
+# FIG 5  HISTOGRAM OF PAGES
 
 pages=np.array(my_books['Number of Pages'].dropna())
 pages_med=np.median(pages)
@@ -813,20 +822,48 @@ plt.show()
 
 #%% TOP AUTHOR BY BOOKS READ
 
-count_by_author=my_books[['Book Id','Author']].groupby('Author').count().sort_values('Book Id',ascending=False)
+count_by_author=my_books[['Read Count','Author']].groupby('Author').sum().sort_values('Read Count',ascending=[False])
 
 #Get top 10 
 top_cutoff=count_by_author.iat[9,0]
 
-top_authors=count_by_author[count_by_author['Book Id']>=top_cutoff].reset_index()
+top_authors=count_by_author[count_by_author['Read Count']>=top_cutoff].reset_index()
 
 
 #GRAPH 
 fig,ax=plt.subplots()
-sns.barplot(data=top_authors,y='Author',x='Book Id',palette='viridis')
+sns.barplot(data=top_authors,y='Author',x='Read Count',palette='viridis')
 ax.set_xlabel('Books Read')
 plt.savefig('top_authors.png',dpi=300, bbox_inches = "tight")
 plt.show()
+
+
+#author_counts_ar=np.array(count_by_author['Book Id'].dropna())
+#plt.hist(author_counts_ar, bins=10, color=cmap(0.7), edgecolor='black', density=True, alpha=0.6)
+
+
+#%% TOP AUTHORS BY AVERAGE RATING - for 3 or more books
+
+
+rating_by_author=my_books[['My Rating','Author']].replace({0:np.nan}).dropna().groupby('Author').agg(mean_rating=('My Rating','mean'),
+                                                                                                     rating_count=('My Rating','count')).sort_values('mean_rating',ascending=False)
+rating_by_author=rating_by_author[rating_by_author['rating_count']>2]
+#Get top 10 
+if len(rating_by_author<10):
+    top_authors_rate=rating_by_author.reset_index()
+else:
+    top_cutoff_rate=rating_by_author.iat[9,0]
+    top_authors_rate=rating_by_author[rating_by_author['mean_rating']>=top_cutoff_rate].reset_index()
+
+
+#GRAPH 
+fig,ax=plt.subplots()
+sns.barplot(data=top_authors_rate,y='Author',x='mean_rating',palette='viridis')
+ax.set_xlabel('Average Rating')
+plt.savefig('top_authors_rating.png',dpi=300, bbox_inches = "tight")
+plt.show()
+
+#%% TOP AUTHORS BY RATING COMPARED TO AVERAGE
 
 #%%
 '''
